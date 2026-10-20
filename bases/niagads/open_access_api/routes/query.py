@@ -54,10 +54,11 @@ async def query_resources(
     service: QueryEndpointService = Depends(query_service),
 ) -> RecordResponse[SearchMatch]:
     result = await service.get_cached_response()
-    from_cache = True
     if not result:
         result = await service.fetch_matches()
         from_cache = False
+    else:
+        from_cache = True
     return await service.generate_response(result, from_cache=from_cache)
 
 
@@ -71,16 +72,17 @@ async def query_tracks(
     service: QueryEndpointService = Depends(query_service),
 ) -> RecordResponse[SearchMatch]:
     result = await service.get_cached_response()
-    from_cache = True
     if not result:
         result = await service.fetch_matches(Entity.TRACK)
         from_cache = False
+    else:
+        from_cache = True
     return await service.generate_response(result, from_cache=from_cache)
 
 
 @router.get(
     "/genes",
-    summary="Query genes",
+    summary="Query gene nomenclature and annotations",
     operation_id="queryGenes",
     response_model=RecordResponse[SearchMatch],
 )
@@ -88,25 +90,22 @@ async def query_genes(
     service: QueryEndpointService = Depends(query_service),
 ) -> RecordResponse[SearchMatch]:
     result = await service.get_cached_response()
-    from_cache = True
     if not result:
         result = await service.fetch_matches(Entity.GENE)
         from_cache = False
+    else:
+        from_cache = True
     return await service.generate_response(result, from_cache=from_cache)
 
 
 @router.get(
     "/variants",
-    summary="Query variants (not yet implemented)",
+    summary="Query variant annotations",
     operation_id="queryVariants",
     response_model=RecordResponse[SearchMatch],
+    openapi_extra={"x-status": "planned"},
 )
 async def query_variants(
     service: QueryEndpointService = Depends(query_service),
 ) -> RecordResponse[SearchMatch]:
-    result = await service.get_cached_response()
-    from_cache = True
-    if not result:
-        result = await service.fetch_matches(Entity.VARIANT)
-        from_cache = False
-    return await service.generate_response(result, from_cache=from_cache)
+    return NotImplemented("Coming soon: this search is not yet implemented.")
