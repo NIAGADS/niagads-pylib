@@ -16,7 +16,7 @@ def parse_comma_separated_list(value_str: str) -> list[str]:
     Raises:
         ValueError: If the string contains an unsupported delimiter.
     """
-    if any(delim in value_str for delim in [":", "|", ";", " ", "\t", "/", "\\"]):
+    if any(delim in value_str for delim in ["|", ";", " ", "\t", "/", "\\"]):
         raise ValueError(
             "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
         )
