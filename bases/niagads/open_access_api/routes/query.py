@@ -55,7 +55,7 @@ async def query_resources(
 ) -> RecordResponse[SearchMatch]:
     result = await service.get_cached_response()
     if not result:
-        result = await service.fetch_matches()
+        result = await service.semantic_search()
         from_cache = False
     else:
         from_cache = True
@@ -73,7 +73,7 @@ async def query_tracks(
 ) -> RecordResponse[SearchMatch]:
     result = await service.get_cached_response()
     if not result:
-        result = await service.fetch_matches(Entity.TRACK)
+        result = await service.semantic_search(Entity.TRACK)
         from_cache = False
     else:
         from_cache = True
@@ -91,7 +91,7 @@ async def query_genes(
 ) -> RecordResponse[SearchMatch]:
     result = await service.get_cached_response()
     if not result:
-        result = await service.fetch_matches(Entity.GENE)
+        result = await service.semantic_search(Entity.GENE)
         from_cache = False
     else:
         from_cache = True

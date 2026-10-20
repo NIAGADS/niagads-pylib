@@ -10,7 +10,7 @@ from niagads.database.genomicsdb.schema.gene.documents import Gene
 class QueryEndpointService(BaseEndpointService):
     """Search track and gene documents using a query embedding."""
 
-    async def fetch_matches(self, entity: Entity | None = None) -> list[SearchMatch]:
+    async def semantic_search(self, entity: Entity | None = None) -> list[SearchMatch]:
         """Retrieve semantic matches for one entity or combine all supported entities.
 
         Args:
