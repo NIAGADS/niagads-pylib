@@ -125,7 +125,7 @@ For local continuation:
 3. When the user explicitly requests validation, start with the guide's real
    embedding-only command. It contacts OpenRouter but requires no database or
    API startup. Confirm the exact model works before attempting semantic search.
-4. Run requested focused mock tests and local API integration checks. Verify
+4. Run requested focused integration tests using the configured services. Verify
    direct record lookups, gene/track semantic retrieval, provenance, pagination,
    failure handling and the final browser stream. Unsupported flows must remain
    explicit rather than appear as empty successful results.
