@@ -3,7 +3,7 @@ services:
     # container_name: open-access-api
     # latest versions fails silently and stops the container; see https://github.com/Snapchat/KeyDB/issues/802
     image: eqalpha/keydb:x86_64_v6.3.3
-    container_name: oaa-cachedb-${NAMESPACE}
+    container_name: oaa-cachedb
     restart: always
     ports:
       - ${HOST_KEYDB_PORT}:6379
@@ -16,8 +16,8 @@ services:
       - ${KEYDB_DATA_DIR}:/data
 
   oaa-server:
-    image: oaa-server:${NAMESPACE}-${API_VERSION}
-    container_name: oaa-server-${NAMESPACE}
+    image: oaa-service:${NAMESPACE}-${API_VERSION}
+    container_name: oaa-service
     restart: always
     depends_on:
       - oaa-cachedb
