@@ -2,8 +2,16 @@
 
 ## ASK NIAGADS alpha
 
+* Revisit ASK configuration loading and discoverability. `AskSettings` maps
+  `ASK_*` environment variables to unprefixed attributes through `env_prefix`
+  and reads `.env` relative to the working directory. Query embedding settings
+  use `CustomSettings.from_env()` and honor `SERVICE_ENV`, while telemetry checks
+  `LOGFIRE_TOKEN` directly in the process environment. Align these paths with
+  established project conventions and document variable-to-consumer mappings.
+  Clarify that `sample.ask.env` is a template and is not loaded automatically.
 * Deferred discussion: [ASK design prompts](developer-notes/plans/ask/deferred-prompts.md)
-  cover hard-coded capabilities, unexpected requests, and extension scenarios.
+  cover hard-coded capabilities, unexpected requests, extension scenarios, and
+  assessment/refactoring of Polylith base/component boundaries (Prompt 005).
   Reference only; activate individual prompts only when explicitly requested.
 * Potential refactor: generate ASK operation metadata at build time from FastAPI
   route definitions or an exported OpenAPI specification instead of maintaining

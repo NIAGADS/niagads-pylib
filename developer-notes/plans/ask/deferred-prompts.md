@@ -76,3 +76,57 @@ Present the proposed tool/contract, interaction, and unresolved choices for
 discussion before implementing changes. This is a deferred idea, not an
 approved feature specification.
 ```
+
+## Prompt 005: Assess and refactor Polylith boundaries
+
+```text
+Assess the ASK NIAGADS implementation for code that belongs in reusable Polylith
+components rather than bases/niagads/open_access_api/ask, then refactor the agreed
+boundaries. This prompt authorizes assessment first; discuss significant moves
+and their consequences before implementing them.
+
+Read AGENTS.md and ASK_NIAGADS_HANDOFF.md in niagads-pylib and the paired
+niagads-viz-monorepo. Preserve existing local changes and the current task
+branches. Inspect current code and manifests rather than relying solely on the
+handoff. Do not launch subagents.
+
+Start with a read-only inventory of ASK responsibilities and dependencies:
+agent construction, tools, HTTP retrieval, operation metadata, settings,
+result/presentation contracts, result storage and previews, telemetry, type
+export, and FastAPI transport. Trace their callers and runtime ownership.
+
+Inspect existing components and nearby bases before proposing destinations.
+Reuse applicable utilities, models, mixins, settings, and service patterns.
+Classify each responsibility by its actual coupling: reusable application
+behavior, shared domain/API functionality, or application-specific entrypoint
+and wiring. Identify what should remain in the base as well as what should move.
+Do not assume every ASK module belongs in a component, create one large component
+solely to relocate the directory, or duplicate existing domain record models.
+
+Present a concrete source-to-destination mapping with the reason for each move,
+the resulting brick dependencies, and affected public imports. Explain how
+application-specific tools, capabilities, and configuration reach reusable code
+without creating component-to-base imports or circular dependencies. Identify
+unresolved choices and obtain agreement on the proposed boundaries before edits.
+
+After review, implement the agreed refactor in coherent steps. Preserve API
+routes, agent capabilities, model assignments, request limits, settings behavior,
+streaming, serialized contracts, and frontend behavior. Keep database retrieval
+in the ORM layer. Do not combine relocation with deferred feature work or
+behavioral redesign. Avoid redundant wrappers and speculative abstractions.
+
+Update imports, application wiring, Polylith brick/package mappings, dependency
+declarations, affected test imports, type-export commands, and developer guides
+as needed. Keep optional ASK dependencies consistent with the existing Poetry
+setup. Coordinate frontend changes only where the agreed refactor requires them.
+
+Review the final dependency direction and diff. Run appropriate non-test checks;
+run tests only when explicitly requested. Do not access the database or make
+live OpenRouter calls without separate authorization. Before any OpenRouter
+batch, obtain approval for its purpose and maximum request count, including
+retries, and track attempts and outcomes.
+
+Report the final responsibility mapping, changed files and import paths,
+checks performed, and remaining validation. Do not claim behavior is verified
+by file moves or import checks alone.
+```

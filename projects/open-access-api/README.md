@@ -31,6 +31,12 @@ docker compose build oaa-service
 
 Rebuild both after changing application code or project dependencies.
 
+The Docker build copies `ask.build.env` to `/code/.env` in the application's
+working directory, so Pydantic settings can load the ASK defaults.
+Rebuild the image after changing `ask.build.env`. Runtime environment variables
+take precedence over values loaded from `.env`; supply credentials through the
+runtime environment file.
+
 ## Start the cache
 
 ```bash
