@@ -27,6 +27,7 @@ from niagads.api.common.types import ResponseContent, ResponseFormat
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.genomic.features.types import GenomicFeatureType
+from niagads.common.models.base import SerializationOptions
 from niagads.open_access_api.dependencies import OpenAccessEndpointContext
 
 logger = logging.getLogger(f"uvicorn.error.{__name__}")
@@ -133,8 +134,9 @@ async def get_variant(
     )
 
     result = await service.get_cached_response()
-    from_cache = True
-    if not result:
+    if result:
+        from_cache = True
+    else:
         result = await service.fetch_record(variant)
         from_cache = False
     return await service.generate_response(result, from_cache=from_cache)
@@ -179,5 +181,7 @@ async def get_variant_associations(
     if not result:
         result = await service.fetch_associations(variant, flank=flank, summary=summary)
         from_cache = False
+
     response = await service.generate_response(result, from_cache=from_cache)
+    # logger.debug(response.model_dump(mode="json"))
     return response

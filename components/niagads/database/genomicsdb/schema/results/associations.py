@@ -85,6 +85,8 @@ class VariantAssociation(
                 func.jsonb_build_object(
                     "track_stable_id",
                     Track.source_id,
+                    "traits",
+                    Track.participant_phenotypes,
                     "position",
                     func.lower(cls.span),
                 )
@@ -147,6 +149,8 @@ class VariantAssociation(
                 func.jsonb_build_object(
                     "track_stable_id",
                     Track.source_id,
+                    "traits",
+                    Track.participant_phenotypes,
                     "position",
                     func.lower(cls.span),
                 )
@@ -193,6 +197,8 @@ class VariantAssociation(
                 func.jsonb_build_object(
                     "track_stable_id",
                     Track.source_id,
+                    "traits",
+                    Track.participant_phenotypes,
                     "position",
                     func.lower(cls.span),
                 )
