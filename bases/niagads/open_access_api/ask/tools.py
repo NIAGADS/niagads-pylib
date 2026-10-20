@@ -1,5 +1,6 @@
 """Typed tool definitions adapting existing API operations, never database access."""
 
+import logging
 from typing import Annotated, Literal
 
 import httpx
@@ -20,9 +21,13 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
         ctx.deps["store"].add(result)
         return ctx.deps["store"].summary(result.id)
     except NotImplementedError:
+        logging.getLogger(__name__).exception(
+            "ASK API operation unavailable: %s", operation
+        )
         status = "unsupported"
         detail = "This API operation or its required embedding model is unavailable."
     except (httpx.HTTPError, ValueError):
+        logging.getLogger(__name__).exception("ASK API retrieval failed: %s", operation)
         status = "retrieval_error"
         detail = "API retrieval failed or exceeded prototype limits; narrow the query or retry."
     ctx.deps.setdefault("warnings", []).append(detail)

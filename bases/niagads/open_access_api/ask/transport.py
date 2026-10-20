@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from uuid import uuid4
 
 import httpx
@@ -11,6 +12,7 @@ from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.contracts import AskResponse, Presentation
 from niagads.open_access_api.ask.results import ResultStore
+from pydantic import ValidationError
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
 from pydantic_ai.usage import UsageLimits
@@ -62,6 +64,13 @@ def get_settings() -> AskSettings:
     try:
         return AskSettings()
     except ValueError as exc:
+        if isinstance(exc, ValidationError):
+            logging.getLogger(__name__).error(
+                "Invalid assistant configuration: %s",
+                exc.errors(include_input=False, include_context=False),
+            )
+        else:
+            logging.getLogger(__name__).exception("Invalid assistant configuration")
         raise HTTPException(
             503, "Invalid assistant configuration; configure an explicit free model."
         ) from exc
@@ -164,6 +173,9 @@ async def ask(
                     async def safe_events():
                         async for event in events:
                             if isinstance(event, ErrorChunk):
+                                logging.getLogger(__name__).error(
+                                    "ASK stream error: %s", event.error_text
+                                )
                                 yield ErrorChunk(
                                     errorText="Assistant provider or tool failed. Retry or narrow the question."
                                 )
@@ -175,6 +187,7 @@ async def ask(
         except asyncio.CancelledError:
             raise
         except Exception:
+            logging.getLogger(__name__).exception("ASK assistant request failed")
             # Never expose upstream credentials, raw provider bodies, or stack traces.
             yield 'data: {"type":"error","errorText":"Assistant request failed or reached its limit. Retry or narrow the question."}\n\n'
             yield "data: [DONE]\n\n"

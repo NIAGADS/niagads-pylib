@@ -6,6 +6,7 @@ import os
 import logfire
 from fastapi import FastAPI
 from niagads.open_access_api.ask.config import AskSettings
+from pydantic import ValidationError
 
 
 def configure_telemetry(app: FastAPI, settings: AskSettings | None = None) -> bool:
@@ -13,7 +14,16 @@ def configure_telemetry(app: FastAPI, settings: AskSettings | None = None) -> bo
     if settings is None:
         try:
             settings = AskSettings()
-        except ValueError:
+        except ValueError as exc:
+            if isinstance(exc, ValidationError):
+                logging.getLogger(__name__).warning(
+                    "Assistant telemetry configuration is invalid: %s",
+                    exc.errors(include_input=False, include_context=False),
+                )
+            else:
+                logging.getLogger(__name__).warning(
+                    "Assistant telemetry configuration is invalid", exc_info=True
+                )
             return False
     if not settings.telemetry or not os.environ.get("LOGFIRE_TOKEN"):
         return False
@@ -38,6 +48,6 @@ def configure_telemetry(app: FastAPI, settings: AskSettings | None = None) -> bo
         return True
     except Exception:
         logging.getLogger(__name__).warning(
-            "Assistant telemetry could not be initialized"
+            "Assistant telemetry could not be initialized", exc_info=True
         )
         return False

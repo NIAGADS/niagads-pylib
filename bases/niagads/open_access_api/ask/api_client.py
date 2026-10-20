@@ -1,6 +1,7 @@
 """Fixed API operations only; no database queries or arbitrary upstream URLs."""
 
 import json
+import logging
 from urllib.parse import quote
 
 import httpx
@@ -46,6 +47,13 @@ async def retrieve(
                 )
             chunks.append(chunk)
         body = b"".join(chunks)
+        if response.is_error:
+            logging.getLogger(__name__).error(
+                "ASK API retrieval failed: operation=%s HTTP %s response=%s",
+                operation,
+                response.status_code,
+                body.decode("utf-8", errors="replace"),
+            )
         if response.status_code == 501:
             raise NotImplementedError(
                 "API operation awaits local ORM/retrieval integration"

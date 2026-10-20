@@ -23,21 +23,36 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
     def normalize_embedding(payload: dict, model: str) -> list[float]:
         """Validate the selected model's one-vector response and unit-normalize it."""
         try:
-            if payload["model"] != model or len(payload["data"]) != 1:
-                raise ValueError
+            if "error" in payload:
+                raise ValueError(f"Provider error: {payload['error']!r}")
+            if payload["model"] != model:
+                raise ValueError(
+                    f"Expected model {model!r}; received {payload['model']!r}."
+                )
+            if len(payload["data"]) != 1:
+                raise ValueError(
+                    f"Expected one embedding; received {len(payload['data'])}."
+                )
             item = payload["data"][0]
             if item["index"] != 0:
-                raise ValueError
+                raise ValueError(
+                    f"Expected embedding index 0; received {item['index']!r}."
+                )
             vector = TypeAdapter(list[FiniteFloat]).validate_python(
                 item["embedding"], strict=True
             )
+            if not vector:
+                raise ValueError("Received an empty embedding vector.")
             norm = math.hypot(*vector)
-            if not vector or not math.isfinite(norm) or norm == 0:
-                raise ValueError
-        except (KeyError, TypeError, ValueError):
+            if not math.isfinite(norm) or norm == 0:
+                raise ValueError(
+                    f"Expected a finite, nonzero embedding norm; received {norm!r}."
+                )
+        except (KeyError, TypeError, ValueError) as exc:
             raise RuntimeError(
-                "OpenRouter returned an invalid query embedding or a different model."
-            ) from None
+                f"OpenRouter query embedding validation failed (model {model}): "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
         return [value / norm for value in vector]
 
     async def generate(self, query: str) -> list[float]:
@@ -59,10 +74,17 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
                     "/api/v1/embeddings",
                     headers=headers,
                     json={"model": model, "input": query, "encoding_format": "float"},
+                    raise_for_status=False,
                 ) as response:
+                    if response.status >= 400:
+                        detail = await response.text()
+                        raise RuntimeError(
+                            "OpenRouter query embedding failed "
+                            f"(HTTP {response.status}, model {model}): {detail}"
+                        )
                     return self.normalize_embedding(await response.json(), model)
-        except (ClientError, asyncio.TimeoutError):
+        except (ClientError, asyncio.TimeoutError) as exc:
             raise RuntimeError(
-                "OpenRouter query embedding failed; check provider access, credentials, "
-                "and model availability."
-            ) from None
+                f"OpenRouter query embedding failed (model {model}): "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
