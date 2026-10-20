@@ -1,8 +1,10 @@
 """Streaming protocol and trust boundaries using mock API/model dependencies."""
 
+import json
+
 import httpx
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
@@ -28,7 +30,7 @@ def test_history_rejects_system_messages_and_oversized_context():
                 ]
             }
         )
-    with pytest.raises(ValueError):
+    with pytest.raises(HTTPException) as caught:
         sanitize_history(
             {
                 "messages": [
@@ -36,6 +38,8 @@ def test_history_rejects_system_messages_and_oversized_context():
                 ]
             }
         )
+
+    assert caught.value.status_code == 413
 
 
 def test_history_discards_browser_tool_results():
@@ -152,3 +156,52 @@ def test_text_only_response_is_not_labeled_no_matching_records():
         )
     assert '"status":"ok"' in response.text
     assert '"status":"empty"' not in response.text
+
+
+@pytest.mark.parametrize(
+    "payload,expected", [("invalid-json", 422), ("x" * 65537, 413)]
+)
+def test_invalid_conversation_fails_before_streaming(payload, expected):
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_agent] = lambda: build_agent(
+        AskSettings(), model=TestModel(call_tools=[])
+    )
+    with TestClient(app) as client:
+        response = client.post("/ask", content=payload)
+    assert response.status_code == expected
+    assert "text/event-stream" not in response.headers["content-type"]
+
+
+def test_provider_failure_stream_uses_the_safe_issue_contract():
+    async def fail(messages, info):
+        raise RuntimeError("secret-provider-body")
+        yield "unreachable"
+
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_agent] = lambda: build_agent(
+        AskSettings(), model=FunctionModel(stream_function=fail)
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/ask",
+            json={
+                "messages": [
+                    {"role": "user", "parts": [{"type": "text", "text": "question"}]},
+                ]
+            },
+        )
+    events = [
+        json.loads(line[6:])
+        for line in response.text.splitlines()
+        if line.startswith("data: ") and line != "data: [DONE]"
+    ]
+    errors = [event for event in events if event["type"] == "error"]
+    assert response.status_code == 200
+    assert len(errors) == 1
+    issue = json.loads(errors[0]["errorText"])
+    assert issue["code"] == "internal_error"
+    assert issue["operation"] == "assistant"
+    assert issue["request_id"]
+    assert "secret" not in response.text

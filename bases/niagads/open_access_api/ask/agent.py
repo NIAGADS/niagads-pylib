@@ -27,6 +27,8 @@ For an association_source_bar, request association content="summary" and use
 the API's num_associations per track. Summary pages may contain only some tracks.
 Full rows are server-owned; never reproduce datasets or generate frontend code.
 Do not call an empty result a failed retrieval, or a failed retrieval no matches.
+Failure notices are displayed separately. Do not repeat their full messages in
+answer text or recommend unrelated retries or query changes.
 Explain unsupported operations honestly. Ranked/page-limited results are not all
 matching records. Curated and +/-10 kb proximity evidence are distinct; proximity
 does not establish causality. Keep both sources per gene. Do not infer a disease
@@ -53,7 +55,6 @@ def build_agent(settings: AskSettings, model=None) -> Agent:
         deps_type=dict,
         instructions=INSTRUCTIONS,
         retries=1,
-        tool_timeout=settings.api_timeout,
         model_settings={"max_tokens": 2000, "parallel_tool_calls": False},
         tools=[
             search_resources,

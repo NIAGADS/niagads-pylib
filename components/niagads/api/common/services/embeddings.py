@@ -10,6 +10,14 @@ from niagads.requests.core import HttpClientSessionManager
 from pydantic import FiniteFloat, TypeAdapter
 
 
+class QueryEmbeddingError(RuntimeError, ComponentBaseMixin):
+    """Preserve embedding failures and provider references for internal callers."""
+
+    def __init__(self, message: str, request_id: str | None = None):
+        RuntimeError.__init__(self, message)
+        self.request_id = request_id
+
+
 class OpenRouterQueryEmbedding(ComponentBaseMixin):
     """Generate query vectors using the configured, restricted embedding model."""
 
@@ -34,10 +42,10 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
             norm = math.hypot(*vector)
             if not vector or not math.isfinite(norm) or norm == 0:
                 raise ValueError
-        except (KeyError, TypeError, ValueError):
-            raise RuntimeError(
+        except (KeyError, TypeError, ValueError) as exc:
+            raise QueryEmbeddingError(
                 "OpenRouter returned an invalid query embedding or a different model."
-            ) from None
+            ) from exc
         return [value / norm for value in vector]
 
     async def generate(self, query: str) -> list[float]:
@@ -60,9 +68,17 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
                     headers=headers,
                     json={"model": model, "input": query, "encoding_format": "float"},
                 ) as response:
-                    return self.normalize_embedding(await response.json(), model)
-        except (ClientError, asyncio.TimeoutError):
-            raise RuntimeError(
+                    request_id = response.headers.get("x-request-id")
+                    try:
+                        payload = await response.json()
+                        return self.normalize_embedding(payload, model)
+                    except (ValueError, QueryEmbeddingError) as exc:
+                        raise QueryEmbeddingError(
+                            "OpenRouter returned an invalid query embedding.",
+                            request_id,
+                        ) from exc
+        except (ClientError, asyncio.TimeoutError) as exc:
+            raise QueryEmbeddingError(
                 "OpenRouter query embedding failed; check provider access, credentials, "
                 "and model availability."
-            ) from None
+            ) from exc
