@@ -17,20 +17,6 @@ SOURCE_CHART_TYPES = (
 )
 
 
-class Evidence(CustomBaseModel):
-    """One independently attributable item of gene-association evidence."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    evidence_type: Literal["curated", "proximity"]
-    data_source: str = Field(min_length=1)
-    phenotype: str | None = None
-    variant: str | None = None
-    window: str | None = None
-    assertion: str | None = None
-    qualifiers: dict[str, Any] = Field(default_factory=dict)
-
-
 class ResultSet(CustomBaseModel):
     """A bounded page of authoritative API data with explicit provenance."""
 
