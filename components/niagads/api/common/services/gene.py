@@ -108,6 +108,4 @@ class GeneEndpointService(BaseEndpointService):
         mappings = await VAOrm.retrieve_records(self._context.database_session, region)
         associations = mappings[str(region)]
 
-        return await self._generate_association_lookup_result(
-            associations, summary=summary
-        )
+        return self._generate_association_lookup_result(associations, summary=summary)

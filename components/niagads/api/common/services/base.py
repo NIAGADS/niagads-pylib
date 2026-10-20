@@ -13,7 +13,6 @@ from niagads.common.core import ComponentBaseMixin
 from niagads.common.models.types import Range
 from niagads.common.types import RecordRetrievalResult
 from niagads.common.variant.models.record import VariantRecord
-from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.database.genomicsdb.schema.results.associations import (
     VariantAssociation as VAOrm,
 )
@@ -129,7 +128,7 @@ class BaseEndpointService(ComponentBaseMixin):
             data=paged_result,
         )
 
-    async def _generate_association_lookup_result(
+    def _generate_association_lookup_result(
         self, associations: list[dict], *, summary: bool = False
     ) -> Union[list[VariantAssociation], list[DynamicRecord]]:
         """Assemble variant associations with their track phenotypes.
@@ -142,46 +141,43 @@ class BaseEndpointService(ComponentBaseMixin):
                 with track phenotypes, or per-track traits and association
                 counts. Returns an empty list if no associations are found.
         """
-
+        self.logger.info("in base with associations")
         if not associations:
             return []
 
-        track_stable_ids = [a.get("track_stable_id") for a in associations]
-        track_mappings = await Track.retrieve_records(
-            self._context.database_session, track_stable_ids
-        )
-        track_traits = {}
-        for track_stable_id, tracks in track_mappings.items():
-            phenotypes = tracks[0]["participant_phenotypes"]
-            track_traits[track_stable_id] = (
-                {key: value for key, value in phenotypes.items() if value is not None}
-                if phenotypes is not None
-                else None
-            )
-
         if summary:
+            # iterate over returned tracks so that we can get a
+            # count of number of associations per track for summary
+            # response
+            track_counts = Counter()
+            track_traits = {}
+            for association in associations:
+                track_stable_id = association["track_stable_id"]
+                track_counts[track_stable_id] += 1
+
+                if track_stable_id in track_traits:
+                    continue
+
+                track_traits[track_stable_id] = association["traits"]
+
             return [
                 DynamicRecord(
                     track=track_id,
                     traits=track_traits[track_id],
                     num_associations=count,
                 )
-                for track_id, count in Counter(track_stable_ids).items()
+                for track_id, count in track_counts.items()
             ]
 
         results = []
         for assoc in associations:
             variant_id = assoc["variant_stable_id"]
-            is_structural_variant = matches(
-                variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID
-            )
             track_id = assoc["track_stable_id"]
 
-            if is_structural_variant:
+            if matches(variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID):
                 variant_association = VariantAssociation(
                     **assoc,
                     variant=variant_id,
-                    traits=track_traits[track_id],
                     track=track_id,
                 )
 
@@ -192,7 +188,6 @@ class BaseEndpointService(ComponentBaseMixin):
                     variant=variant_id,
                     ref=variant.ref,
                     alt=variant.alt,
-                    traits=track_traits[track_id],
                     track=track_id,
                 )
 

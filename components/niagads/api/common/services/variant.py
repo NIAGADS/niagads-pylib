@@ -71,9 +71,7 @@ class VariantEndpointService(BaseEndpointService):
         mappings = await VAOrm.retrieve_records(self._context.database_session, region)
         associations = mappings[str(region)]
 
-        return await self._generate_association_lookup_result(
-            associations, summary=summary
-        )
+        return self._generate_association_lookup_result(associations, summary=summary)
 
     async def fetch_associations(
         self, variant_id: str, *, flank: int = 0, summary: bool = False
@@ -89,41 +87,44 @@ class VariantEndpointService(BaseEndpointService):
                 with track phenotypes, or per-track traits and association
                 counts. Returns an empty list if no associations are found.
         """
-
-        mappings: RecordRetrievalResult = await self._lookup_records([variant_id])
-        if variant_id not in mappings:
+        variant_mappings: RecordRetrievalResult = await self._lookup_records(
+            [variant_id]
+        )
+        if variant_id not in variant_mappings:
             raise HTTPException(
                 status_code=404, detail=f"Variant `{variant_id}` not found"
             )
 
-        variant = VariantRecord(
-            **mappings[variant_id][0], id=mappings[variant_id][0]["niagads_id"]
-        )
+        associations = []
+        for mapped_variant in variant_mappings[variant_id]:
+            variant = VariantRecord(**mapped_variant, id=mapped_variant["niagads_id"])
+            self.logger.debug(f"lookup: {variant_id} -> mapped variant: {variant_id}")
 
-        if variant.is_structural_variant:
-            return await self._fetch_structural_variant_associations(
-                variant, flank=flank, summary=summary
-            )
+            # there will only everbe one match
+            if variant.is_structural_variant:
+                return await self._fetch_structural_variant_associations(
+                    variant, flank=flank, summary=summary
+                )
 
-        if not flank:
-            mappings = await VAOrm.retrieve_records(
-                self._context.database_session, variant.id
-            )
+            if not flank:
+                assoc_mappings = await VAOrm.retrieve_records(
+                    self._context.database_session, variant.id
+                )
+                associations.extend(assoc_mappings[variant.id])
 
-        else:
-            region = OneBasedGenomicRegion(
-                chromosome=variant.chromosome,
-                start=variant.span.start,
-                end=variant.span.end,
-            )
-            region.start -= flank
-            region.end -= flank
+            else:
+                region = OneBasedGenomicRegion(
+                    chromosome=variant.chromosome,
+                    start=variant.span.start,
+                    end=variant.span.end,
+                )
+                region.start -= flank
+                region.end += flank
 
-            mappings = await VAOrm.retrieve_records(
-                self._context.database_session, region
-            )
+                assoc_mappings = await VAOrm.retrieve_records(
+                    self._context.database_session, region
+                )
 
-        associations = mappings[str(region)]
-        return await self._generate_association_lookup_result(
-            associations, summary=summary
-        )
+                associations.extend(assoc_mappings[str(region)])
+
+        return self._generate_association_lookup_result(associations, summary=summary)
