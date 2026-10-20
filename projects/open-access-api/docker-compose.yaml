@@ -15,8 +15,8 @@ services:
     volumes:
       - ${KEYDB_DATA_DIR}:/data
 
-  oaa-server:
-    image: oaa-service:${NAMESPACE}-${API_VERSION}
+  oaa-service:
+    image: oaa-service:${API_VERSION}
     container_name: oaa-service
     restart: always
     depends_on:
