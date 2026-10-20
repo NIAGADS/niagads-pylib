@@ -140,11 +140,17 @@ httpx = "^0.28.1"
 
 [tool.poetry.group.ask.dependencies.pydantic-ai-slim]
 version = "2.57.0"
-extras = ["openrouter", "ui"]
+extras = [
+    "openrouter",
+    "ui",
+]
 
 [tool.poetry.group.ask.dependencies.logfire]
 version = "5.2.0"
-extras = ["fastapi", "httpx"]
+extras = [
+    "fastapi",
+    "httpx",
+]
 [tool.poetry.scripts]
 migrate-gwas = "niagads.genomicsdb_etl.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 runpipe = "niagads.pipeline_service.runners.core:run_main"
