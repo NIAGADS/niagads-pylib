@@ -156,10 +156,11 @@ The official Vercel UI stream carries text/tool events and a final
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "status": "ok",
   "results": [{
-    "id": "server-issued-result-id", "kind": "genes", "rows": [],
+    "id": "server-issued-result-id", "entity": "gene",
+    "annotation": "report", "rows": [],
     "page": 1, "limit": 50, "has_more": false,
     "sources": [], "parameters": {}, "warnings": []
   }],
@@ -178,7 +179,8 @@ text is separate from all displayed data. Missing/invalid components are not
 executed. Status distinguishes empty, unsupported, clarification, and retrieval
 failures; provider/limit failures use safe stream errors.
 
-Variant records use result kind `variants` and the existing table presentation.
+Variant reports use `entity: "variant"`, `annotation: "report"`, and the existing
+table presentation.
 Variant annotations are not phenotype association evidence; source charts require
 gene evidence or association rows. At most 50 records from an API page are retained;
 larger pages include an explicit truncation warning.
@@ -191,10 +193,36 @@ belong to one deduplicated gene. The known-AD-locus flag remains explicit rather
 than acquiring an invented curated-list name. The contract supports these fields;
 population of phenotype evidence awaits the deferred ORM methods.
 
+Entity identity uses `niagads.common.types.Entity`; annotation kinds use
+`niagads.api.common.types.AnnotationKind`. A report is an annotation kind; records
+remain the API's representation of retrieved information. Search candidates have
+`annotation: null` because a match is not a full entity report. Version 2 replaces
+the former mixed `kind` field; backend and frontend must be updated together.
+
+Supported retrieval operations are declared in `ask/operations.py`, with an
+endpoint, entity, annotation kind, and the existing `ResponseConfiguration`
+response/record model pair (for example, `RecordResponse` and `Gene`). This
+metadata describes the existing route's default JSON/full response; it does not
+introduce a second record-model implementation or change route validation.
+Search operations are derived from entries using `SearchMatch`, independently
+of their operation names. Registering an entity does not enable new retrieval.
+
+After changing the enums or `SOURCE_CHART_TYPES`, regenerate and commit the
+frontend constants from this repository (no API startup or provider call):
+
+```bash
+PYTHONPATH=components:bases python -m niagads.open_access_api.ask.export_types \
+  ../niagads-viz-monorepo/apps/open-access-api-client/app/ask/types.generated.ts
+```
+
+The frontend imports the generated enums and chart compatibility rules for its
+runtime validation. New annotations can reuse the table without new renderers;
+charts require explicit compatible entity/annotation pairs.
+
 To add a component: extend the backend Presentation discriminator, validate its
-result kind/options in ResultStore, mirror its runtime schema in frontend
-`app/ask/contracts.ts`, and add an adapter to the explicit registry in Results.tsx.
-Reuse an existing component contract. Add both backend and frontend tests before
+entity/annotation compatibility in ResultStore, mirror its runtime schema in
+frontend `app/ask/contracts.ts`, and add an adapter to the explicit registry in
+Results.tsx. Reuse an existing component contract. Add both backend and frontend tests before
 allowing the model to select it. Never accept arbitrary JSX, HTML, CSS, or URLs.
 
 History is browser-memory only and cleared on reload/new session. At most 12

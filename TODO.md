@@ -2,6 +2,18 @@
 
 ## ASK NIAGADS alpha
 
+* Potential refactor: generate ASK operation metadata at build time from FastAPI
+  route definitions or an exported OpenAPI specification instead of maintaining
+  `bases/niagads/open_access_api/ask/operations.py` independently. Route definitions
+  can retain the actual Python response/record model classes; OpenAPI describes
+  their schemas but does not reliably identify the intended entity, annotation
+  kind, or default model among content-dependent alternatives. Evaluate explicit
+  route metadata for ASK eligibility, entity/annotation mapping, and model
+  selection as the single source for generation. Preserve planned-operation
+  status and explicit tool exposure; discovering a route must not automatically
+  make it callable by the agent. Generate without database startup or provider
+  calls, and detect stale or inconsistent generated metadata during build checks.
+  Assess alongside the existing frontend type exporter before implementation.
 * Local follow-up: update ORM retrieval models/methods for paginated associations
   by region and phenotype-associated genes with curated and +/-10 kb proximity
   evidence. Database queries belong in the ORM layer, never in API code. These
@@ -35,6 +47,24 @@
 
 ## Project wide
 
+* Potential refactor: evaluate migrating `HttpClientSessionManager`
+  (`components/niagads/requests/core.py`) from aiohttp to HTTPX to unify shared
+  HTTP client management. Currently the manager provides pooled network sessions,
+  timeouts, request logging, JSON retrieval, and cleanup for existing consumers.
+  In contrast, ASK's `bases/niagads/open_access_api/ask/api_client.py` accepts an
+  `httpx.AsyncClient` and streams responses with a byte limit. Its caller in
+  `ask/transport.py` supplies `httpx.ASGITransport` to invoke the existing FastAPI
+  routes in process, forwarding selected request headers without a network call.
+  HTTPX is used here for that transport capability, not because agent tools
+  require a separate HTTP client implementation.
+  These uses could converge on the existing manager backed by HTTPX, preserving
+  its public retrieval/lifecycle methods while allowing an optional transport
+  and bounded streaming. First inventory callers, particularly those obtaining
+  the underlying aiohttp session through `__call__`: request/response APIs,
+  timeout semantics, connection limits, exception handling, and logging need
+  compatibility review. A direct client substitution is insufficient. Discuss
+  scope before implementation; this is a candidate refactor, not an approved
+  migration.
 * systematically review all function defintions and use `"*, "` before named parameters to enforce using they keywords
 
 ## ETL
