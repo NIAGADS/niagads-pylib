@@ -29,7 +29,11 @@ class VariantEndpointService(BaseEndpointService):
         mappings: RecordRetrievalResult = await self._lookup_records(variant_ids)
         return {
             k: [
-                self._response_config.record_model(**mf) if mf else []
+                (
+                    self._response_config.record_model(**mf, id=mf["niagads_id"])
+                    if mf
+                    else []
+                )
                 for mf in mapped_features
             ]
             for k, mapped_features in mappings.items()
