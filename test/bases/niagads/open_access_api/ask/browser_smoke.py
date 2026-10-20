@@ -40,9 +40,11 @@ def main():
         page.goto(args.url, wait_until="networkidle", timeout=90000)
         submit(page, "Show a dashboard for the test gene")
         page.get_by_text("Show source chart", exact=True).click()
-        page.locator('[aria-label="Source evidence chart"] svg').wait_for(timeout=60000)
+        page.locator('[aria-label="Association counts by track"] svg').wait_for(
+            timeout=60000
+        )
         assert "test-track-a" in page.locator("main").inner_text()
-        assert page.get_by_role("cell", name="test-variant-1", exact=True).count() == 1
+        assert page.get_by_role("cell", name="1200", exact=True).count() >= 1
         print("PASS desktop: real tool stream, NIAGADS table/chart, source counts")
 
         page.set_viewport_size({"width": 390, "height": 844})
@@ -61,9 +63,9 @@ def main():
         page.get_by_role("button", name="New session", exact=True).click()
         assert page.get_by_text("MOCK DATA:", exact=False).count() == 0
         submit(page, "Show the test gene evidence")
-        assert "test-curated-list" in page.locator("main").inner_text()
-        assert "test-track-a" in page.locator("main").inner_text()
-        print("PASS provenance: curated and proximity sources preserved")
+        assert "test-gene" in page.locator("main").inner_text()
+        assert page.get_by_text("Show source chart", exact=True).count() == 0
+        print("PASS report: gene records do not offer association charts")
 
         submit(page, "Show a dashboard for the test gene")
         assert page.get_by_text("MOCK DATA:", exact=False).count() == 2

@@ -1,9 +1,12 @@
 """Run-local datasets and deterministic summaries for model/component boundaries."""
 
-from collections import Counter
-
+from niagads.api.common.types import ResponseContent
 from niagads.common.core import ComponentBaseMixin
-from niagads.open_access_api.ask.contracts import Presentation, ResultSet
+from niagads.open_access_api.ask.contracts import (
+    SOURCE_CHART_TYPES,
+    Presentation,
+    ResultSet,
+)
 
 
 class ResultStore(ComponentBaseMixin):
@@ -28,7 +31,7 @@ class ResultStore(ComponentBaseMixin):
         return self.results[result_id]
 
     def summary(self, result_id: str) -> dict:
-        """Expose bounded evidence identifiers and a small preview to the agent."""
+        """Expose identifiers and a small record preview to the agent."""
         result = self.get(result_id)
         preview = []
         for row in result.rows[:5]:
@@ -36,15 +39,26 @@ class ResultStore(ComponentBaseMixin):
                 {
                     key: value
                     for key, value in row.items()
-                    if key in {"id", "name", "label", "variant", "track", "description"}
+                    if key
+                    in {
+                        "id",
+                        "name",
+                        "label",
+                        "variant",
+                        "track",
+                        "description",
+                        "num_associations",
+                    }
                     and isinstance(value, (str, int, float, bool))
                     and len(str(value)) <= 300
                 }
             )
         return {
             "result_id": result.id,
-            "kind": result.kind,
+            "entity": result.entity.value,
+            "annotation": (result.annotation.value if result.annotation else None),
             "count": len(result.rows),
+            "content": result.content.value,
             "page": result.page,
             "has_more": result.has_more,
             "sources": result.sources[:20],
@@ -56,16 +70,9 @@ class ResultStore(ComponentBaseMixin):
         """Reject components referring to nonexistent or incompatible datasets."""
         result = self.get(presentation.result_id)
         if presentation.component == "association_source_bar":
-            if result.kind not in {"genes", "associations"}:
-                raise ValueError("Source chart requires association evidence")
+            if (
+                result.entity,
+                result.annotation,
+            ) not in SOURCE_CHART_TYPES or result.content != ResponseContent.SUMMARY:
+                raise ValueError("Source chart requires an association summary")
         return presentation
-
-    def source_counts(self, result_id: str) -> list[dict]:
-        """Count source evidence in the retrieved page, independent of prose."""
-        counts = Counter()
-        for row in self.get(result_id).rows:
-            for evidence in row.get("evidence", []):
-                counts[evidence["data_source"]] += 1
-            if row.get("track"):
-                counts[row["track"]] += 1
-        return [{"term": key, "count": counts[key]} for key in sorted(counts)]

@@ -3,6 +3,8 @@
 from typing import Annotated, Literal
 
 from niagads.api.common.constants import MAX_NUM_PAGES
+from niagads.api.common.types import ResponseContent
+from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
 from niagads.open_access_api.ask.contracts import AskErrorCode, AskIssue, Presentation
 from niagads.open_access_api.ask.errors import (
@@ -10,6 +12,7 @@ from niagads.open_access_api.ask.errors import (
     issue_for_exception,
     make_issue,
 )
+from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
 from niagads.open_access_api.ask.telemetry import log_failure
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
@@ -46,25 +49,28 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
 async def search_resources(
     ctx: RunContext[dict],
     query: str,
-    entity: Literal["tracks", "genes", "variants"],
+    entity: Entity,
     limit: Annotated[int, Field(ge=1, le=50)] = 10,
 ) -> dict:
     """Search gene/track candidates; semantic similarity is not association evidence."""
-    if entity == "variants":
+    operation = SEARCH_OPERATIONS.get(entity)
+    if operation is None:
         detail = (
             "Searching variants by meaning is not available. "
             "Use a variant identifier instead."
+            if entity == Entity.VARIANT
+            else "Searching this type of record is not available. Ask about genes or datasets."
         )
         ctx.deps.setdefault("issues", []).append(
             AskIssue(
                 code=AskErrorCode.UNSUPPORTED,
-                operation="search_variants",
+                operation="search_resources",
                 message=detail,
             )
         )
         ctx.deps.setdefault("failures", []).append("unsupported")
         return {"status": "unsupported", "detail": detail}
-    return await _execute(ctx, f"search_{entity}", {"query": query, "limit": limit})
+    return await _execute(ctx, operation, {"query": query, "limit": limit})
 
 
 async def get_gene(ctx: RunContext[dict], gene: str) -> dict:
@@ -101,11 +107,17 @@ async def get_gene_associations(
     gene: str,
     page: Annotated[int, Field(ge=1, le=MAX_NUM_PAGES)] = 1,
     flank: Annotated[int, Field(ge=0, le=1000000)] = 0,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
 ) -> dict:
-    """Retrieve an existing gene's association page, preserving source track IDs."""
-    return await _execute(
-        ctx, "gene_associations", {"gene": gene, "page": page, "flank": flank}
+    """Retrieve gene associations; use summary content for counts by track."""
+    operation = (
+        "gene_associations_summary"
+        if content == ResponseContent.SUMMARY
+        else "gene_associations"
     )
+    return await _execute(ctx, operation, {"gene": gene, "page": page, "flank": flank})
 
 
 async def get_variant_associations(
@@ -113,11 +125,19 @@ async def get_variant_associations(
     variant: str,
     page: Annotated[int, Field(ge=1, le=MAX_NUM_PAGES)] = 1,
     flank: Annotated[int, Field(ge=0, le=1000000)] = 0,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
 ) -> dict:
-    """Retrieve a variant's association page with the API's optional flanking span."""
+    """Retrieve variant associations; use summary content for counts by track."""
+    operation = (
+        "variant_associations_summary"
+        if content == ResponseContent.SUMMARY
+        else "variant_associations"
+    )
     return await _execute(
         ctx,
-        "variant_associations",
+        operation,
         {"variant": variant, "page": page, "flank": flank},
     )
 
@@ -126,6 +146,9 @@ async def get_transcript_associations(
     ctx: RunContext[dict],
     gene: str,
     transcript: str,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
 ) -> dict:
     """Resolve the exact transcript span through gene structure, then query its region."""
     summary = await _execute(ctx, "gene_structure", {"gene": gene})
@@ -144,13 +167,30 @@ async def get_transcript_associations(
             "detail": "Select a transcript ID with a location from the gene structure.",
         }
     return await _execute(
-        ctx, "region_associations", {"region": selected[0]["location"]}
+        ctx,
+        (
+            "region_associations_summary"
+            if content == ResponseContent.SUMMARY
+            else "region_associations"
+        ),
+        {"region": selected[0]["location"]},
     )
 
 
-async def get_region_associations(ctx: RunContext[dict], region: str) -> dict:
-    """Request regional associations; prototype endpoint may explicitly return 501."""
-    return await _execute(ctx, "region_associations", {"region": region})
+async def get_region_associations(
+    ctx: RunContext[dict],
+    region: str,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
+) -> dict:
+    """Request regional associations or per-track counts; may return 501."""
+    operation = (
+        "region_associations_summary"
+        if content == ResponseContent.SUMMARY
+        else "region_associations"
+    )
+    return await _execute(ctx, operation, {"region": region})
 
 
 async def find_phenotype_genes(ctx: RunContext[dict], phenotype: str) -> dict:
@@ -191,7 +231,13 @@ async def find_api_operations(ctx: RunContext[dict], query: str) -> dict:
                     "parameters": [
                         {
                             k: p[k]
-                            for k in ("name", "in", "required", "schema", "examples")
+                            for k in (
+                                "name",
+                                "in",
+                                "required",
+                                "schema",
+                                "examples",
+                            )
                             if k in p
                         }
                         for p in operation.get("parameters", [])[:12]
@@ -220,4 +266,8 @@ async def present_results(
         ctx.deps["store"].presentations.append(presentation)
     except ValueError as exc:
         raise ModelRetry(str(exc)) from exc
-    return {"status": "validated", "result_id": result_id, "component": component}
+    return {
+        "status": "validated",
+        "result_id": result_id,
+        "component": component,
+    }

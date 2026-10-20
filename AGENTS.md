@@ -1,5 +1,15 @@
 # AI & Copilot Code Change Policy
 
+## Workspace location
+
+- Keep all task work inside the current project workspace.
+- When separate Git worktrees are requested, create them under
+  <repository-root>/.worktrees/<task-name>.
+- Never place worktrees in /tmp or outside the workspace.
+- Preserve the original checkout and all local changes.
+- If the required location is blocked or cannot be safely ignored,
+  ask before choosing another location.
+
 ## Token and usage budget
 
 - Keep work within the requested scope. Avoid repeated file reads,

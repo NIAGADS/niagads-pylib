@@ -26,6 +26,9 @@ ACTIONS = {
     "gene_associations": "Retrieving gene associations",
     "variant_associations": "Retrieving variant associations",
     "region_associations": "Retrieving region associations",
+    "gene_associations_summary": "Retrieving gene association counts",
+    "variant_associations_summary": "Retrieving variant association counts",
+    "region_associations_summary": "Retrieving region association counts",
     "assistant": "Preparing the answer",
 }
 

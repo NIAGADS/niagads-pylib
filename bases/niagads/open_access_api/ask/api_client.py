@@ -7,8 +7,11 @@ from urllib.parse import quote
 import httpx
 from niagads.api.common.exception_handlers import handled_request_exception
 from niagads.api.common.services.embeddings import QueryEmbeddingError
+from niagads.api.common.types import AnnotationKind
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
+from niagads.common.search.models.record import SearchMatch
+from niagads.common.types import Entity
 from niagads.open_access_api.ask.contracts import AskErrorCode, ResultSet
 from niagads.open_access_api.ask.errors import (
     RetrievalError,
@@ -16,18 +19,7 @@ from niagads.open_access_api.ask.errors import (
     issue_for_status,
     make_issue,
 )
-
-OPERATIONS = {
-    "search_tracks": ("/query/tracks", "tracks"),
-    "search_genes": ("/query/genes", "genes"),
-    "gene": ("/record/gene/{gene}", "genes"),
-    "variant": ("/record/variant/{variant}", "variants"),
-    "track": ("/record/track/{track}", "tracks"),
-    "gene_structure": ("/record/gene/{gene}/structure", "structure"),
-    "gene_associations": ("/record/gene/{gene}/associations", "associations"),
-    "variant_associations": ("/record/variant/{variant}/associations", "associations"),
-    "region_associations": ("/record/region/associations", "associations"),
-}
+from niagads.open_access_api.ask.operations import OPERATIONS
 
 
 async def retrieve(
@@ -36,16 +28,19 @@ async def retrieve(
     """Execute a registered API GET and retain a bounded authoritative page."""
     if operation not in OPERATIONS:
         raise ValueError("Operation is not registered")
-    path, kind = OPERATIONS[operation]
+    definition = OPERATIONS[operation]
+    path = definition.endpoint
+    semantic_search = definition.response_config.record_model is SearchMatch
     params = dict(parameters)
+    if definition.annotation == AnnotationKind.ASSOCIATIONS:
+        params["content"] = definition.response_config.content.value
+    identifier = definition.entity.value
     try:
-        for identifier in ("gene", "variant", "track"):
-            if f"{{{identifier}}}" not in path:
-                continue
+        if f"{{{identifier}}}" in path:
             value = sanitize(params.pop(identifier))
-            if identifier == "gene":
+            if definition.entity == Entity.GENE:
                 value = GenomicFeature.validate_gene_id(value)
-            elif identifier == "variant":
+            elif definition.entity == Entity.VARIANT:
                 value = GenomicFeature.validate_variant_id(value)
             if not value or value in {".", ".."} or "/" in value:
                 raise ValueError("Invalid record identifier")
@@ -101,7 +96,7 @@ async def retrieve(
         rows = []
         for record in data[:50]:
             row = dict(record)
-            if operation.startswith("search_"):
+            if semantic_search:
                 if "matched_record_id" not in row:
                     raise ValueError(
                         "API returned a semantic match without an identifier"
@@ -115,7 +110,9 @@ async def retrieve(
         page = int(params.get("page", 1))
         has_more = len(data) > 50 or pagination.get("total_pages", page) > page
         return ResultSet(
-            kind=kind,
+            entity=definition.entity,
+            annotation=definition.annotation,
+            content=definition.response_config.content,
             rows=rows,
             page=page,
             limit=50,
@@ -130,7 +127,7 @@ async def retrieve(
             ),
             warnings=(
                 ["Ranked semantic results are candidates and are not exhaustive."]
-                if operation.startswith("search_")
+                if semantic_search
                 else []
             )
             + (

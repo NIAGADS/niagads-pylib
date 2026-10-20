@@ -1,7 +1,6 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
 from niagads.api.common.models.records.types import ORMCompatibleRecord
-
 from niagads.common.gene.models.record import GeneIdentifier, GeneRecord
 from niagads.common.genomic.regions.models import GenomicRegion
 from pydantic import ConfigDict, Field, ModelWrapValidatorHandler, model_validator

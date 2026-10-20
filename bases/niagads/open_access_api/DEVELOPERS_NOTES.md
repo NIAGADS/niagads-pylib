@@ -1,5 +1,8 @@
 # Open Access API developer notes
 
+For new routes and ASK operation registration, see
+[Writing Open Access API endpoints](ENDPOINT_DEVELOPMENT.md).
+
 ## Interval-bin reference
 
 Application startup loads the GenomicsDB interval-bin reference into

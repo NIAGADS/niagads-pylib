@@ -5,33 +5,58 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from niagads.api.common.models.context.response import ResponseConfiguration
+from niagads.api.common.models.records.types import DynamicRecord
+from niagads.api.common.models.responses.records import RecordResponse
+from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.errors import RetrievalError
-from niagads.open_access_api.ask.tools import find_api_operations, search_resources
+from niagads.open_access_api.ask.operations import OPERATIONS, AskOperation
+from niagads.open_access_api.ask.results import ResultStore
+from niagads.open_access_api.ask.tools import (
+    find_api_operations,
+    search_resources,
+)
 
 
 @pytest.mark.parametrize(
-    "operation,parameters,path,kind",
+    "operation,parameters,path,entity,annotation",
     [
-        ("gene", {"gene": "APOE"}, "/record/gene/APOE", "genes"),
-        ("variant", {"variant": "RS7412"}, "/record/variant/rs7412", "variants"),
+        ("gene", {"gene": "APOE"}, "/record/gene/APOE", "gene", "report"),
+        (
+            "variant",
+            {"variant": "RS7412"},
+            "/record/variant/rs7412",
+            "variant",
+            "report",
+        ),
         (
             "variant",
             {"variant": "1:44908822:C:T"},
             "/record/variant/1:44908822:C:T",
-            "variants",
+            "variant",
+            "report",
         ),
-        ("track", {"track": "track-1"}, "/record/track/track-1", "tracks"),
+        (
+            "track",
+            {"track": "track-1"},
+            "/record/track/track-1",
+            "track",
+            "report",
+        ),
         (
             "variant_associations",
             {"variant": "rs7412", "page": 2, "flank": 10000},
             "/record/variant/rs7412/associations",
+            "variant",
             "associations",
         ),
     ],
 )
-def test_api_tool_uses_registered_record_operation(operation, parameters, path, kind):
+def test_api_tool_uses_registered_record_operation(
+    operation, parameters, path, entity, annotation
+):
     def handler(request):
         assert request.url.path == path
         if operation == "variant_associations":
@@ -47,7 +72,8 @@ def test_api_tool_uses_registered_record_operation(operation, parameters, path, 
 
     result = asyncio.run(run())
     assert result.rows[0]["id"] == "record-1"
-    assert result.kind == kind
+    assert result.entity == entity
+    assert result.annotation == annotation
 
 
 def test_tool_does_not_accept_arbitrary_urls_or_operations():
@@ -57,6 +83,39 @@ def test_tool_does_not_accept_arbitrary_urls_or_operations():
                 await retrieve(client, "https://untrusted.example", {})
 
     asyncio.run(run())
+
+
+def test_registered_entity_uses_its_own_identifier_parameter(monkeypatch):
+    monkeypatch.setitem(
+        OPERATIONS,
+        "collection_report",
+        AskOperation(
+            endpoint="/record/collection/{collection}",
+            entity=Entity.COLLECTION,
+            annotation="report",
+            response_config=ResponseConfiguration(
+                response_model=RecordResponse, record_model=DynamicRecord
+            ),
+        ),
+    )
+
+    def handler(request):
+        assert request.url.path == "/record/collection/collection-1"
+        assert "collection" not in request.url.params
+        return httpx.Response(200, json={"data": [{"id": "collection-1"}]})
+
+    async def run():
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(handler), base_url="http://api"
+        ) as client:
+            return await retrieve(
+                client, "collection_report", {"collection": "collection-1"}
+            )
+
+    result = asyncio.run(run())
+    assert result.entity == Entity.COLLECTION
+    assert result.annotation == "report"
+    assert result.rows == [{"id": "collection-1"}]
 
 
 def test_missing_region_retrieval_is_not_reported_as_empty_success():
@@ -139,7 +198,9 @@ def test_record_tool_reports_truncated_page_and_preserves_pagination():
             base_url="http://api",
         ) as client:
             result = await retrieve(
-                client, "variant_associations", {"variant": "rs7412", "page": 2}
+                client,
+                "variant_associations",
+                {"variant": "rs7412", "page": 2},
             )
             assert result.page == 2
             assert result.has_more
@@ -152,15 +213,20 @@ def test_record_tool_reports_truncated_page_and_preserves_pagination():
 
 def test_variant_semantic_search_is_unsupported_without_making_an_api_request():
     ctx = SimpleNamespace(deps={})
-    result = asyncio.run(search_resources(ctx, query="Alzheimer", entity="variants"))
+    result = asyncio.run(
+        search_resources(ctx, query="Alzheimer", entity=Entity.VARIANT)
+    )
     assert result["status"] == "unsupported"
     assert ctx.deps["failures"] == ["unsupported"]
 
 
-@pytest.mark.parametrize("entity", ["tracks", "genes"])
-def test_semantic_search_calls_existing_query_api(entity):
+@pytest.mark.parametrize(
+    "entity,path",
+    [(Entity.TRACK, "/query/tracks"), (Entity.GENE, "/query/genes")],
+)
+def test_semantic_search_calls_existing_query_api(entity, path):
     def handler(request):
-        assert request.url.path == f"/query/{entity}"
+        assert request.url.path == path
         assert request.url.params["query"] == "Alzheimer"
         assert request.url.params["limit"] == "10"
         return httpx.Response(
@@ -179,12 +245,13 @@ def test_semantic_search_calls_existing_query_api(entity):
         async with httpx.AsyncClient(
             transport=httpx.MockTransport(handler), base_url="http://api"
         ) as client:
-            return await retrieve(
-                client, f"search_{entity}", {"query": "Alzheimer", "limit": 10}
-            )
+            ctx = SimpleNamespace(deps={"client": client, "store": ResultStore()})
+            summary = await search_resources(ctx, query="Alzheimer", entity=entity)
+            return ctx.deps["store"].get(summary["result_id"])
 
     result = asyncio.run(run())
-    assert result.kind == entity
+    assert result.entity == entity
+    assert result.annotation is None
     assert result.rows[0]["id"] == "test-match"
     assert result.warnings
 
@@ -195,7 +262,10 @@ def test_api_help_preserves_planned_operation_status():
             "spec": {
                 "paths": {
                     "/query/variants": {
-                        "get": {"summary": "Query variants", "x-status": "planned"}
+                        "get": {
+                            "summary": "Query variants",
+                            "x-status": "planned",
+                        }
                     }
                 }
             }
@@ -203,3 +273,57 @@ def test_api_help_preserves_planned_operation_status():
     )
     result = asyncio.run(find_api_operations(ctx, query="variants"))
     assert result["operations"][0]["x-status"] == "planned"
+
+
+@pytest.mark.parametrize(
+    "tool,identifier,path",
+    [
+        (
+            get_gene_associations,
+            {"gene": "APOE"},
+            "/record/gene/APOE/associations",
+        ),
+        (
+            get_variant_associations,
+            {"variant": "rs7412"},
+            "/record/variant/rs7412/associations",
+        ),
+    ],
+)
+def test_association_tools_request_existing_api_summary(tool, identifier, path):
+    def handler(request):
+        assert request.url.path == path
+        assert request.url.params["content"] == "summary"
+        assert request.url.params["page"] == "2"
+        assert request.url.params["flank"] == "10000"
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "track": "track-a",
+                        "traits": {},
+                        "num_associations": 1200,
+                    }
+                ]
+            },
+        )
+
+    async def run():
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(handler), base_url="http://api"
+        ) as client:
+            ctx = SimpleNamespace(deps={"client": client, "store": ResultStore()})
+            summary = await tool(
+                ctx,
+                **identifier,
+                content=ResponseContent.SUMMARY,
+                page=2,
+                flank=10000,
+            )
+            return ctx.deps["store"].get(summary["result_id"])
+
+    result = asyncio.run(run())
+    assert result.content == ResponseContent.SUMMARY
+    assert result.rows[0]["num_associations"] == 1200
+    assert result.sources == ["track-a"]
