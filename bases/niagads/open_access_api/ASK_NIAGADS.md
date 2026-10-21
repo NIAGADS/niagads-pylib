@@ -102,7 +102,7 @@ attempts. The two query endpoint cases can each request an OpenRouter embedding
 on a cache miss. Run them only when live service/provider use is intended.
 Missing configuration and service failures are reported as failures, not skipped
 or replaced with synthetic data. For browser checks, use the normal API
-entrypoint and point the frontend's `ASK_API_URL` at that running application.
+entrypoint and point the frontend's `API_INTERNAL_URL` at that running application.
 
 ## What is connected and what is pending
 

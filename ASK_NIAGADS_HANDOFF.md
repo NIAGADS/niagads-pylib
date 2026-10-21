@@ -138,7 +138,7 @@ AskSettings reads .env relative to the process working directory.
 The frontend uses its own .env.local setting:
 
 ```dotenv
-ASK_API_URL=http://127.0.0.1:8000
+API_INTERNAL_URL=http://127.0.0.1:8000
 ```
 
 Adjust that URL to the actual API address. OpenRouter credentials stay on the
