@@ -1,7 +1,7 @@
 # Structured query planning implementation plan
 
 Use Superpowers executing-plans inline. Repository instructions override skill
-defaults: no subagents, no worktrees requested, no tests or live requests without
+defaults: subagents require an explicit request; no worktrees requested, no tests or live requests without
 an explicit request. The user approved implementing the preceding brainstorming.
 
 ## Goal and design
@@ -14,8 +14,8 @@ participants, missing distances or assemblies. The plan is interpretation, not
 retrieved evidence. No additional model/provider setting is introduced.
 
 Planning belongs in ASK; direct /query endpoints remain semantic primitives.
-This is the smallest boundary consistent with the current conversation; the
-user was offered the alternative of also planning direct query requests.
+The user explicitly confirmed ASK chat planning; direct query requests are
+unchanged.
 Do not implement rank fusion, ontology retrieval, exclusions, SQL, ORM changes,
 ETL work, or genomic data endpoints. Preserve current error diagnostics.
 
@@ -65,11 +65,11 @@ ETL work, or genomic data endpoints. Preserve current error diagnostics.
   retrieval guards, unavailable data retrieval and shared request budgets.
 - Verification: Python schema generation, AST syntax, Black/isort, full frontend
   TypeScript and targeted ESLint passed. No tests/live requests executed.
-- Final review: inline self-review; subagent review prohibited by AGENTS.md.
+- Final review: inline self-review; subagents were not explicitly requested, as required by AGENTS.md.
 - Static checks initially found an unknown-to-Error type mismatch and JSX inside
   try/catch in the new view. Validation was separated from rendering and the
   existing error formatter now receives only Error instances; checks then passed.
-- Ruling: keep /query primitives unchanged — optional scope question was offered,
-  and the smaller ASK-only implementation avoids changing direct retrieval/costs.
-- Ruling: no worktrees, subagents or test execution — prior workspace preference
-  and repository rules override skill defaults. Runtime behavior remains unverified.
+- Ruling: keep /query primitives unchanged — the user explicitly confirmed
+  ASK-only planning, preserving direct retrieval semantics and costs.
+- Ruling: no worktrees or test execution; no subagents explicitly requested —
+  prior workspace preference and repository rules override skill defaults. Runtime behavior remains unverified.

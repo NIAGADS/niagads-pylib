@@ -26,8 +26,8 @@ clarifications and deferred exclusions pause API retrieval. The get_track_data
 placeholder records requested track_ids/loc/flank and reports unsupported without
 an HTTP call. Existing error diagnostics and operation metadata are preserved.
 
-Scope boundary: direct /query endpoints remain semantic primitives; the user was
-offered planning there as an alternative. No combined semantic ranking, Boolean
+Scope boundary: direct /query endpoints remain semantic primitives; the user explicitly
+confirmed ASK-only planning. No combined semantic ranking, Boolean
 record filtering, ontology retrieval, exclusions, SQL/ORM/ETL changes or genomic
 data endpoints were implemented. The next retrieval stage still needs its own
 design: separate candidate searches alone do not prove all constraints were met.
@@ -36,7 +36,8 @@ Checks: Python schema generation, syntax, Black/isort, full client TypeScript an
 targeted ESLint passed. Test cases were added but NOT executed per AGENTS.md.
 No live OpenRouter or database calls were made. Live interpretation quality,
 structured-output support and stream behavior remain unverified. The final review
-was an inline self-review under the no-subagents rule; no independent review ran.
+was an inline self-review because subagents were not explicitly requested; no
+independent review ran.
 
 Current plan and progress: developer-notes/plans/ask/structured-query-planning.md.
 Focused cases: test/bases/niagads/open_access_api/ask/test_planning.py and the
