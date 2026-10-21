@@ -42,6 +42,15 @@ class ResultSet(CustomBaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class ResultFilter(CustomBaseModel):
+    """Match an actual retrieved scalar field by exact value."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    field: str = Field(min_length=1)
+    value: str | bool | int | float
+
+
 class PresentationIntent(CustomBaseModel):
     """User-facing view preference; frontend adapters own how it is fulfilled."""
 
@@ -54,6 +63,7 @@ class PresentationIntent(CustomBaseModel):
     group_by: str | None = Field(default=None, min_length=1)
     x: str | None = Field(default=None, min_length=1)
     y: str | None = Field(default=None, min_length=1)
+    filters: list[ResultFilter] = Field(default_factory=list, max_length=10)
 
 
 class AskResponse(CustomBaseModel):

@@ -11,6 +11,9 @@
 
 ## ASK NIAGADS alpha
 
+* Defer pagination handling for ASK regional variant and association queries.
+  Send the retrieved API page to the tables for now; add pagination using the
+  planned approach later.
 * Evaluate AD-related Gene Ontology (GO) annotations and pathway memberships as
   additional gene evidence for ASK. Define how to identify AD-relevant terms and
   pathways and preserve their provenance and distinction from direct association

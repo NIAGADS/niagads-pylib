@@ -136,6 +136,8 @@ def query_plan_instructions(ctx: RunContext[dict]) -> str:
         "Clarify ambiguities before actions that depend on them; independent "
         "retrieval can proceed. Explain unsupported constraints without claiming "
         "they were applied or substituting metadata for genomic results. "
-        "Exclusions, genomic track-data retrieval and multi-concept filtering "
-        "are not implemented.\n" + json.dumps(plan.model_dump(mode="json"))
+        "Resource-discovery exclusions, genomic track-data retrieval and "
+        "multi-concept resource filtering are not implemented. Regional variant "
+        "retrieval and frontend equality filters on retrieved scalar fields are "
+        "available.\n" + json.dumps(plan.model_dump(mode="json"))
     )

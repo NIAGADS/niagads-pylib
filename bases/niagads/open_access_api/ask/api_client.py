@@ -9,10 +9,39 @@ from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.types import AnnotationKind, ResponseFormat
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
+from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.types import Entity
 from niagads.open_access_api.ask.contracts import ResultSet
 from niagads.open_access_api.ask.operations import OPERATIONS
+
+
+async def resolve_feature_location(
+    client: httpx.AsyncClient, identifier: str, flank: int
+) -> OneBasedGenomicRegion:
+    """Resolve feature coordinates through the API's location service.
+
+    Args:
+        client (httpx.AsyncClient): Client for the existing Open Access API.
+        identifier (str): Gene or variant identifier to resolve.
+        flank (int): Number of bases to extend on each side.
+
+    Returns:
+        OneBasedGenomicRegion: Coordinates returned by the location service.
+    """
+    async with asyncio.timeout(client.timeout.read):
+        response = await client.get(
+            "/service/feature", params={"id": identifier, "flank": flank}
+        )
+        if response.is_error:
+            raise RuntimeError(
+                "API request for feature_location failed "
+                f"(HTTP {response.status_code}): {response.text}"
+            )
+        data = response.json()
+        return OneBasedGenomicRegion(
+            chromosome=data["chr"], start=data["start"], end=data["end"]
+        )
 
 
 async def retrieve(
@@ -28,15 +57,15 @@ async def retrieve(
     params["format"] = ResponseFormat.JSON.value
     if definition.annotation in {AnnotationKind.ASSOCIATIONS, AnnotationKind.REPORT}:
         params["content"] = definition.response_config.content.value
-    identifier = definition.entity.value
+    identifier = "region" if "{region}" in path else definition.entity.value
     try:
         if f"{{{identifier}}}" in path:
             value = sanitize(params.pop(identifier))
-            if definition.entity == Entity.GENE:
+            if identifier == Entity.GENE.value:
                 value = GenomicFeature.validate_gene_id(value)
-            elif definition.entity == Entity.VARIANT:
+            elif identifier == Entity.VARIANT.value:
                 value = GenomicFeature.validate_variant_id(value)
-            elif definition.entity == Entity.REGION:
+            elif identifier == Entity.REGION.value:
                 value = GenomicFeature.validate_span(value)
             if not value or value in {".", ".."} or "/" in value:
                 raise ValueError("Invalid record identifier")
@@ -106,7 +135,7 @@ async def retrieve(
                 else []
             )
             + (
-                ["Only the first 50 records of this API page are shown."]
+                ["Only the first 50 search candidates are shown."]
                 if semantic_search and len(data) > 50
                 else []
             ),

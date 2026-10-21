@@ -293,17 +293,17 @@ async def ask(
                 )
                 if not message_started and feedback_reference:
                     event = StartChunk(message_id=str(uuid4()))
-                    yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
+                    yield "data: " + event.encode(sdk_version=7) + "\n\n"
                 if store.results or feedback_reference:
                     async for event in complete(None, failed=True):
-                        yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
+                        yield "data: " + event.encode(sdk_version=7) + "\n\n"
                 event = ErrorChunk(
                     errorText=(
                         f"{type(exc).__name__}: {exc} "
                         f"Reference: {headers['x-request-id']}."
                     )
                 )
-                yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
+                yield "data: " + event.encode(sdk_version=7) + "\n\n"
                 yield "data: [DONE]\n\n"
 
     return StreamingResponse(
