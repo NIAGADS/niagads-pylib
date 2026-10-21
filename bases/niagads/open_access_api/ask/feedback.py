@@ -14,9 +14,7 @@ class AskFeedback(CustomBaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    reference: str = Field(
-        pattern=r"^00-[0-9a-f]{32}-[0-9a-f]{16}-01\.[0-9a-f]{64}$"
-    )
+    reference: str = Field(pattern=r"^00-[0-9a-f]{32}-[0-9a-f]{16}-01\.[0-9a-f]{64}$")
     rating: Literal[0, 1]
     comment: str | None = Field(default=None, max_length=2000)
 
