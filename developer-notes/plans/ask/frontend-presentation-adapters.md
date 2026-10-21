@@ -76,3 +76,13 @@ explicit x/y preferences. Added a regression case and now explain unsupported
 axes rather than swapping them. Horizontal explicit axes remain supported. No
 other high-confidence findings. Regression cases were not executed under AGENTS.md.
 No new chart orientation/component API added as part of this ownership refactor.
+
+## Subsequent user correction: remove synthetic tests
+
+Removed the synthetic-record contract, intent, association-trait, dashboard and
+track-action tests in both repos, plus the frontend test:ask script and stale
+synthetic smoke-run documentation. Earlier references to regression cases above
+are historical; those cases are no longer present. Live integration and unrelated
+diagnostic tests remain. Static checks do not validate behavior against real API
+data or model responses. Real-data validation is pending. No tests/live requests
+were run for this removal.

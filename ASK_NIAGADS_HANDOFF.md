@@ -1,5 +1,16 @@
 # ASK NIAGADS local Codex handoff
 
+## Validation correction: synthetic tests removed
+
+At the user's request, synthetic-record ASK dashboard, presentation-intent,
+track-data and phenotype-mapping tests have been removed in both repositories.
+The frontend test:ask command and obsolete synthetic smoke-run instructions were
+also removed. Live integration tests and unrelated diagnostic tests remain.
+Earlier test references below are historical and do not establish real-data
+correctness. Static checks establish source consistency only. Validation against
+actual API responses, databases and model behavior remains pending; no tests or
+live requests were run for this removal.
+
 ## Current boundary: frontend-owned adapters (v4)
 
 Work continues on codex/ask-dashboard-translators in both repos after the
@@ -29,12 +40,12 @@ Breaking protocol revision: envelope v4 replaces v3 UI selections with intent;
 update paired backend/frontend together. No v3 fallback is introduced.
 
 Plan/ledger: developer-notes/plans/ask/frontend-presentation-adapters.md in Python.
-Tests are added/updated but not run under AGENTS.md. No live model/database calls,
-SQL/ORM/ETL/retrieval/embedding changes or dependency installs. Final static
+Synthetic-record tests were removed at the user's request. No live model/database
+calls, SQL/ORM/ETL/retrieval/embedding changes or dependency installs. Final static
 verification passed: Python AST/Black/isort and response/tool schema generation;
 frontend TypeScript and targeted ESLint; both git diff --check. Independent review
-found an explicit-axis mismatch, now fixed with an unrun regression case. Details
-are recorded in that plan.
+found an explicit-axis mismatch, now fixed; its synthetic regression case was
+removed. Details are recorded in that plan.
 
 ## Prior dashboard checkpoint (v3; superseded)
 
@@ -107,11 +118,9 @@ translator data interface without applying the bounded LLM envelope's row cap.
 Fetched records remain in the current UI session and are not sent into chat
 history or accepted as model evidence. Numeric histogram filters stay disabled.
 
-Focused cases: `apps/open-access-api-client/tests/track-data.test.ts` in the
-frontend. Cases cover selection limits, path validation, per-track partial
-failures/provenance/pagination, p-value strings and fixed upstream request paths.
-Tests were added but not executed under AGENTS.md. App and Table source TypeScript and targeted app ESLint passed; independent
-review found no actionable defects. The Table workspace bundle/declarations built
+Synthetic action tests were subsequently removed at the user's request.
+Historical static checks: App and Table source TypeScript and targeted app ESLint
+passed; independent review found no actionable defects. The Table workspace bundle/declarations built
 successfully using a temporary compiler compatibility override, with existing
 circular-import/external-dependency warnings. No repository build configuration
 changed. No live model/database calls were made.
@@ -134,7 +143,7 @@ ASK clarifies the gene/search scope rather than claiming an exhaustive inverse
 search or substituting semantic similarity as association evidence. No new data
 endpoint, SQL/ORM/ETL, embedding, query-planning or model configuration was added.
 
-Regression cases: test_association_traits.py in the Python ASK test directory.
+Synthetic association-trait cases were subsequently removed at the user's request.
 Python syntax/style/tool-schema checks and repository diff checks passed;
 independent targeted static review found no high-confidence defects. Tests and
 live model/database requests remain unrun under the existing policy.
