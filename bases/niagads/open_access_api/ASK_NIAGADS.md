@@ -142,9 +142,10 @@ entrypoint and point the frontend's `API_INTERNAL_URL` at that running applicati
 - Transcript tools retrieve gene structure, select the exact transcript ID,
   and pass its returned location to the region endpoint. Missing/ambiguous
   transcript selection requests clarification; it does not use the full gene.
-- Phenotype-to-gene retrieval explicitly reports unavailable. It does not use
-  semantic similarity as evidence of a disease association. Future ORM/API work
-  is listed in root TODO.md, including both curated and ±10 kb proximity sources.
+- For identified genes, association trait summaries support phenotype mapping with
+  source/page/query context. Unseeded phenotype-first requests need scope
+  clarification; semantic similarity is not association evidence. Further work is
+  recorded in developer-notes/TODO.md.
 - API help uses FastAPI's OpenAPI generation for the registered routes. Its
   operation catalog preserves `x-status` for planned endpoints. Its
   operation catalog does not depend on application-level server metadata, which
@@ -154,108 +155,54 @@ entrypoint and point the frontend's `API_INTERNAL_URL` at that running applicati
 
 ## Response contract and extension points
 
-The official Vercel UI stream carries text/tool events and a final
-`data-niagads-result` part with a validated `AskResponse`:
+ASK streams text/tool events and a final data-niagads-result part with envelope
+version 4. Results retain entity/annotation/content, authoritative rows, source
+IDs, parameters, warnings and pagination. The agent sees previews/field names and
+association trait summaries; it never supplies a replacement dataset.
+
+Presentation entries contain intent, not frontend adapter/component identifiers:
 
 ```json
 {
-  "version": 2,
-  "status": "ok",
-  "results": [{
-    "id": "server-issued-result-id", "entity": "gene",
-    "annotation": "report", "content": "full", "rows": [],
-    "page": 1, "limit": 50, "has_more": false,
-    "sources": [], "parameters": {}, "warnings": []
-  }],
-  "presentation": [{
-    "component": "table", "result_id": "server-issued-result-id",
-    "title": "Retrieved evidence", "slot": "primary"
-  }],
-  "warnings": []
+  "result_id": "<returned result ID>",
+  "view": "plot",
+  "title": "Association counts by track",
+  "plot_type": "bar",
+  "group_by": "track",
+  "x": null,
+  "y": null
 }
 ```
 
-This is a schema example, not a real query result. Results are run-local and
-server-owned; tools send bounded previews/result IDs to the model, not full
-datasets. A presentation cannot reference a result from another run. The final
-text is separate from all displayed data. Missing/invalid components are not
-executed. Status distinguishes empty, unsupported, clarification, and retrieval
-failures; provider/limit failures use safe stream errors.
+The present_results tool accepts this as its presentation argument. view is
+ auto/table/plot; plot_type and field hints are optional open strings. Python
+validates the structure and result reference. It does not decide which UI can
+render the data. Explicit table/plot requests must be recorded; auto leaves the
+choice to the client. Unsupported requests are explained by frontend adapters,
+with raw data/provenance retained. Versions 2 and 3 are not accepted by this client.
+Update the paired API and client together.
 
-Variant reports use `entity: "variant"`, `annotation: "report"`, and the existing
-table presentation.
-Association source charts require `annotation: "associations"` and
-`content: "summary"`. Association tools accept the existing API content selector:
-use `full` for individual `VariantAssociation` records or `summary` for existing
-`DynamicRecord` rows containing `track`, `traits`, and `num_associations`.
-The operation registry describes both responses with the existing record models.
+All UI source-to-component mappings, column definitions, filter choices, chart
+eligibility and layout live in the frontend app/ask/translators library. This
+follows the Charts package's source-format translator pattern. To add or change a
+view, implement/register a frontend adapter for the expected API output; no Python
+UI registry or capability export needs updating. The API remains responsible for
+its canonical record contracts and evidence integrity. Retrieval operations stay
+in ask/operations.py with their existing API response models.
 
-ASK v3 presentations select registered translators rather than generic components.
-Tables use explicit mappings for semantic matches, gene/variant/track records,
-associations and API count summaries. Each tool summary advertises compatible
-translator IDs, columns, required fields and grouping choices. Example selection:
-
-```json
-{
-  "translator": "track_records_table",
-  "result_id": "<returned result_id>",
-  "title": "Retrieved tracks",
-  "parameters": {"columns": ["id", "name", "data_source", "is_download_only"]}
-}
-```
-
-Pass this as the `presentation` argument to `present_results`. No rows or executable
-component options are accepted. Mapping rules come from `ask/presentations.py`
-and are exported for client conversion. Unsupported shapes remain inspectable as
-raw records, with provenance and pagination. Numeric and p-value histogram filters
-are disabled; categorical and boolean controls use the existing table UI.
-Reported p-value strings remain intact, including values below floating-point
-range; the separate neg_log10_pvalue field remains numeric.
-
-`association_counts_bar` displays API `num_associations` values by track from
-summary content. `category_counts_bar` counts loaded rows by a registered scalar
-categorical `group_by` field. These bars are independent of table filters; labels
-distinguish loaded-row counts from returned API aggregates and preserve has_more
-warnings. Configure `ASK_MAX_BAR_CATEGORIES` (positive integer, default 7). Above
-that cardinality, retain the complete count table and omit the bar. No truncation
-or new Other grouping is introduced for standalone bars.
-
-Entity identity uses `niagads.common.types.Entity`; annotation kinds use
-`niagads.api.common.types.AnnotationKind`. A report is an annotation kind; records
-remain the API's representation of retrieved information. Search candidates have
-`annotation: null` because a match is not a full entity report. Version 3 retains
-these identity fields and replaces component-only selections with translator
-selections. Backend and frontend must be updated together; version 2 is rejected.
-
-Supported retrieval operations are declared in `ask/operations.py`, with an
-endpoint, entity, annotation kind, and the existing `ResponseConfiguration`
-response/record model pair (for example, `RecordResponse` and `Gene`). This
-metadata describes the requested JSON content, including association summaries; it does not
-introduce a second record-model implementation or change route validation.
-Association summary entries use `content=ResponseContent.SUMMARY` and
-`record_model=DynamicRecord`. ASK results include `content` so presentation
-validation can distinguish summaries from full records. Model previews retain
-`num_associations` alongside the track identifier.
-Search operations are derived from entries using `SearchMatch`, independently
-of their operation names. Registering an entity does not enable new retrieval.
-
-After changing the enums or `TABLE_RULES`, regenerate and commit the
-frontend constants from this repository (no API startup or provider call):
+Data enums alone are shared through the existing exporter. Regenerate them only
+when these domain enums change, not when UI adapters change:
 
 ```bash
 PYTHONPATH=components:bases python -m niagads.open_access_api.ask.export_types \
   ../niagads-viz-monorepo/apps/open-access-api-client/app/ask/types.generated.ts
 ```
 
-The frontend imports the generated enums and chart compatibility rules for its
-runtime validation. New annotations can reuse the table without new renderers;
-charts require explicit compatible entity/annotation pairs.
-
-To add a component: extend the backend Presentation discriminator, validate its
-entity/annotation compatibility in ResultStore, mirror its runtime schema in
-frontend `app/ask/contracts.ts`, and add an adapter to the explicit registry in
-Results.tsx. Reuse an existing component contract. Add both backend and frontend tests before
-allowing the model to select it. Never accept arbitrary JSX, HTML, CSS, or URLs.
+The frontend config NEXT_PUBLIC_ASK_MAX_BAR_CATEGORIES controls bar cardinality
+(default 7, positive integer). This display policy is no longer a Python setting.
+Histogram filters stay disabled; categorical/boolean controls and track selection
+are UI-owned. API aggregate counts retain their values; loaded-row counts are
+labelled as such. Regional Manhattan/standalone pies remain follow-up adapters.
 
 History is browser-memory only and cleared on reload/new session. At most 12
 messages/16,000 text characters enter a run; the request body is capped at 64 KiB.

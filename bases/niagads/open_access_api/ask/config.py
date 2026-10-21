@@ -19,6 +19,5 @@ class AskSettings(BaseSettings):
     tool_calls: int = Field(default=12, ge=1, le=20)
     api_timeout: float = Field(default=20, gt=0, le=30)
     deadline: float = Field(default=90, gt=0, le=120)
-    max_bar_categories: int = Field(default=7, ge=1)
     telemetry: bool = False
     capture_content: bool = False

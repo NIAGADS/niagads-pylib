@@ -6,9 +6,8 @@ from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.api.common.types import ResponseContent
 from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
-from niagads.open_access_api.ask.contracts import AskIssue
+from niagads.open_access_api.ask.contracts import AskIssue, PresentationIntent
 from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
-from niagads.open_access_api.ask.presentations import Presentation
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
@@ -210,8 +209,10 @@ async def find_api_operations(ctx: RunContext[dict], query: str) -> dict:
     return {"operations": matches, "truncated": False}
 
 
-async def present_results(ctx: RunContext[dict], presentation: Presentation) -> dict:
-    """Select an advertised translator and supported parameters, never supply rows."""
+async def present_results(
+    ctx: RunContext[dict], presentation: PresentationIntent
+) -> dict:
+    """Record view/plot preferences for retrieved data; the UI selects its adapters."""
     try:
         ctx.deps["store"].validate_presentation(presentation)
         if len(ctx.deps["store"].presentations) >= 6:
@@ -219,4 +220,4 @@ async def present_results(ctx: RunContext[dict], presentation: Presentation) -> 
         ctx.deps["store"].presentations.append(presentation)
     except (ValueError, RuntimeError) as exc:
         raise ModelRetry(str(exc)) from exc
-    return {"status": "validated", **presentation.model_dump(mode="json")}
+    return {"status": "recorded", **presentation.model_dump(mode="json")}

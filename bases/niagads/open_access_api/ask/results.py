@@ -3,13 +3,7 @@
 from niagads.api.common.types import AnnotationKind
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.models import OntologyTerm
-from niagads.open_access_api.ask.contracts import ResultSet
-from niagads.open_access_api.ask.presentations import (
-    TABLE_RULES,
-    Presentation,
-    table_translator,
-    validate_rows,
-)
+from niagads.open_access_api.ask.contracts import PresentationIntent, ResultSet
 
 
 class ResultStore(ComponentBaseMixin):
@@ -18,7 +12,7 @@ class ResultStore(ComponentBaseMixin):
     def __init__(self):
         super().__init__()
         self.results: dict[str, ResultSet] = {}
-        self.presentations: list[Presentation] = []
+        self.presentations: list[PresentationIntent] = []
 
     def add(self, result: ResultSet) -> ResultSet:
         """Retain a result without sending its complete rows through the model."""
@@ -67,7 +61,7 @@ class ResultStore(ComponentBaseMixin):
             "sources": result.sources[:20],
             "preview": preview,
             "warnings": result.warnings,
-            "presentations": self.capabilities(result_id),
+            "fields": list(dict.fromkeys(key for row in result.rows for key in row)),
         }
 
         if result.annotation == AnnotationKind.ASSOCIATIONS:
@@ -96,59 +90,7 @@ class ResultStore(ComponentBaseMixin):
             for annotation in annotations.values()
         ]
 
-    def capabilities(self, result_id: str) -> list[dict]:
-        """Advertise compatible translators and their registered field choices."""
-        result = self.get(result_id)
-        name = table_translator(result)
-        if name is None:
-            return []
-        try:
-            validate_rows(result, name)
-        except ValueError:
-            return []
-        fields = TABLE_RULES[name]["fields"]
-        grouping = [f["id"] for f in fields if f["categorical"]]
-        capabilities = [
-            {
-                "translator": name,
-                "columns": [f["id"] for f in fields],
-                "required_columns": [f["id"] for f in fields if f["required"]],
-                "group_by": grouping,
-            }
-        ]
-        if grouping:
-            capabilities.append(
-                {"translator": "category_counts_bar", "group_by": grouping}
-            )
-        if name == "association_counts_table":
-            capabilities.append({"translator": "association_counts_bar"})
-        return capabilities
-
-    def validate_presentation(self, presentation: Presentation) -> Presentation:
-        """Reject selections referring to nonexistent or incompatible datasets."""
-        result = self.get(presentation.result_id)
-        name = table_translator(result)
-        if name is None:
-            raise ValueError("No registered translator supports this result")
-        validate_rows(result, name)
-        translator = presentation.translator
-        fields = TABLE_RULES[name]["fields"]
-        if translator == "category_counts_bar":
-            grouping = {f["id"] for f in fields if f["categorical"]}
-            if presentation.parameters.group_by not in grouping:
-                raise ValueError("Grouping field is not registered for this result")
-        elif translator == "association_counts_bar":
-            if name != "association_counts_table":
-                raise ValueError("Bar requires an association summary")
-        else:
-            if translator != name:
-                raise ValueError("Table translator is incompatible with this result")
-            columns = presentation.parameters.columns
-            if columns is not None:
-                allowed = {f["id"] for f in fields}
-                required = {f["id"] for f in fields if f["required"]}
-                if len(set(columns)) != len(columns) or not set(columns) <= allowed:
-                    raise ValueError("Columns must be unique registered fields")
-                if not required <= set(columns):
-                    raise ValueError("Required identifier columns cannot be hidden")
-        return presentation
+    def validate_presentation(self, intent: PresentationIntent) -> PresentationIntent:
+        """Validate evidence ownership without enforcing frontend capabilities."""
+        self.get(intent.result_id)
+        return intent

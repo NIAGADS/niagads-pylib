@@ -1,4 +1,7 @@
-# ASK dashboard translators: contract proposal
+# ASK dashboard translators: prior v3 implementation
+
+Superseded by [frontend-owned adapters](frontend-presentation-adapters.md).
+The user rejected backend-owned UI mappings; the v4 plan/handoff takes precedence.
 
 Status: user approved interfaces and category policy; implementation complete.
 

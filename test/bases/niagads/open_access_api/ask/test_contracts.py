@@ -3,11 +3,8 @@
 import pytest
 from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.open_access_api.ask.contracts import (
+    PresentationIntent,
     ResultSet,
-)
-from niagads.open_access_api.ask.presentations import (
-    AssociationCountsPresentation,
-    TablePresentation,
 )
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic import ValidationError
@@ -31,13 +28,13 @@ def test_result_summary_omits_full_rows():
 def test_presentation_cannot_reference_unknown_result():
     with pytest.raises(RuntimeError, match="Unknown result"):
         ResultStore().validate_presentation(
-            TablePresentation(translator="search_matches_table", result_id="forged")
+            PresentationIntent(view="table", result_id="forged")
         )
 
 
-def test_presentation_rejects_unknown_component():
+def test_presentation_rejects_unknown_view():
     with pytest.raises(ValidationError):
-        TablePresentation(translator="execute_js", result_id="result-1")
+        PresentationIntent(view="execute_js", result_id="result-1")
 
 
 def test_summary_preview_preserves_api_association_counts():
@@ -53,7 +50,9 @@ def test_summary_preview_preserves_api_association_counts():
     summary = store.summary(result.id)
     assert summary["content"] == "summary"
     assert summary["preview"] == [{"track": "track-a", "num_associations": 1200}]
-    store.validate_presentation(AssociationCountsPresentation(result_id=result.id))
+    store.validate_presentation(
+        PresentationIntent(result_id=result.id, view="plot", plot_type="bar")
+    )
 
 
 def test_result_page_has_explicit_incompleteness():
@@ -68,25 +67,18 @@ def test_result_page_has_explicit_incompleteness():
         ResultSet(entity="gene", annotation="report", rows=[], page=MAX_NUM_PAGES + 1)
 
 
-def test_chart_requires_an_association_summary():
+def test_presentation_preferences_do_not_enforce_ui_capabilities():
     store = ResultStore()
-    for entity, annotation, allowed in (
-        ("gene", "report", False),
-        ("variant", "report", False),
-        ("gene", "structure", False),
-        ("gene", None, False),
-        ("variant", "associations", True),
-        ("region", "associations", True),
+    for entity, annotation in (
+        ("gene", "report"),
+        ("gene", "structure"),
+        ("variant", "associations"),
     ):
-        result = store.add(
-            ResultSet(entity=entity, annotation=annotation, content="summary")
+        result = store.add(ResultSet(entity=entity, annotation=annotation))
+        intent = PresentationIntent(
+            result_id=result.id, view="plot", plot_type="new_chart"
         )
-        presentation = AssociationCountsPresentation(result_id=result.id)
-        if allowed:
-            store.validate_presentation(presentation)
-        else:
-            with pytest.raises(ValueError):
-                store.validate_presentation(presentation)
+        assert store.validate_presentation(intent) is intent
 
 
 def test_result_serializes_entity_and_annotation_separately():
@@ -99,15 +91,16 @@ def test_result_serializes_entity_and_annotation_separately():
         ResultSet(entity="gene", annotation="unknown")
 
 
-def test_chart_rejects_full_association_records():
+def test_plot_intent_preserves_reference_without_transforming_full_records():
     store = ResultStore()
     result = store.add(
         ResultSet(
             entity="gene",
             annotation="associations",
-            content="full",
             rows=[{"variant": "rs1", "track": "track-a"}],
         )
     )
-    with pytest.raises(ValueError):
-        store.validate_presentation(AssociationCountsPresentation(result_id=result.id))
+    store.validate_presentation(
+        PresentationIntent(result_id=result.id, view="plot", plot_type="bar")
+    )
+    assert store.get(result.id).rows == [{"variant": "rs1", "track": "track-a"}]

@@ -1,6 +1,43 @@
 # ASK NIAGADS local Codex handoff
 
-## Active task: dashboard translators
+## Current boundary: frontend-owned adapters (v4)
+
+Work continues on codex/ask-dashboard-translators in both repos after the
+2026-10-21 development-base merges. Query-planning branches remain separate.
+The user rejected Python-owned UI mappings and approved this refactor.
+
+Python returns authoritative results, provenance/query/pagination and coarse
+PresentationIntent: result_id, view (auto/table/plot), title, optional open-string
+plot_type/group_by/x/y hints. It validates intent shape and run-local result IDs.
+It owns no adapter registry, column/filter definitions, chart eligibility or chart
+limits. ask/presentations.py and exported table rules are removed. Result summaries
+expose actual API field names; phenotype association summaries are preserved.
+
+Frontend adapters in app/ask/translators own expected source formats, typed table
+props and categorical bar conversion. Changing components/columns/filters requires
+no Python change. Auto defaults to a supported table; explicit table requests stay
+tables. Plot preferences select local adapters or produce an explanatory notice
+with raw results retained. Unsupported plot types, axes or groupings are not
+silently rendered as another view. Plot-name strings are not executable code.
+Only currently implemented tables and bars are enabled; regional Manhattan and
+standalone pie remain follow-ups. Track selection/fetch, scientific p-value strings,
+Card/Alert styling, source/query/page/partial-failure details remain intact.
+
+The bar limit is now frontend NEXT_PUBLIC_ASK_MAX_BAR_CATEGORIES (positive integer,
+default 7); ASK_MAX_BAR_CATEGORIES is removed. Histogram filters remain disabled.
+Breaking protocol revision: envelope v4 replaces v3 UI selections with intent;
+update paired backend/frontend together. No v3 fallback is introduced.
+
+Plan/ledger: developer-notes/plans/ask/frontend-presentation-adapters.md in Python.
+Tests are added/updated but not run under AGENTS.md. No live model/database calls,
+SQL/ORM/ETL/retrieval/embedding changes or dependency installs. Final static
+verification passed: Python AST/Black/isort and response/tool schema generation;
+frontend TypeScript and targeted ESLint; both git diff --check. Independent review
+found an explicit-axis mismatch, now fixed with an unrun regression case. Details
+are recorded in that plan.
+
+## Prior dashboard checkpoint (v3; superseded)
+
 
 Work is on **codex/ask-dashboard-translators** in both repositories, based on
 Python **refactor/api at ef6d2ba1** and frontend **app/oa-api at c3962e5f**.

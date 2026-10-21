@@ -7,7 +7,6 @@ from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.api.common.types import AnnotationKind, ResponseContent
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.types import Entity
-from niagads.open_access_api.ask.presentations import Presentation
 from pydantic import ConfigDict, Field
 
 
@@ -43,14 +42,27 @@ class ResultSet(CustomBaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class PresentationIntent(CustomBaseModel):
+    """User-facing view preference; frontend adapters own how it is fulfilled."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    result_id: str = Field(min_length=1)
+    view: Literal["auto", "table", "plot"] = "auto"
+    title: str = Field(default="Retrieved evidence", max_length=160)
+    plot_type: str | None = Field(default=None, min_length=1)
+    group_by: str | None = Field(default=None, min_length=1)
+    x: str | None = Field(default=None, min_length=1)
+    y: str | None = Field(default=None, min_length=1)
+
+
 class AskResponse(CustomBaseModel):
     """A complete structured part of a conversation response."""
 
     model_config = ConfigDict(extra="forbid")
 
     issues: list[AskIssue] = Field(default_factory=list)
-    version: Literal[3] = 3
-    max_bar_categories: int = Field(default=7, ge=1)
+    version: Literal[4] = 4
     status: Literal[
         "ok",
         "empty",
@@ -58,8 +70,7 @@ class AskResponse(CustomBaseModel):
         "unsupported",
         "retrieval_error",
         "provider_error",
-        "invalid_presentation",
     ] = "ok"
     results: list[ResultSet] = Field(default_factory=list, max_length=12)
-    presentation: list[Presentation] = Field(default_factory=list, max_length=6)
+    presentation: list[PresentationIntent] = Field(default_factory=list, max_length=6)
     warnings: list[str] = Field(default_factory=list)
