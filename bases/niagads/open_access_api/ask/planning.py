@@ -76,6 +76,15 @@ class QueryClarification(CustomBaseModel):
     question: str = Field(min_length=1)
 
 
+class GeneEvidence(CaseInsensitiveEnum):
+    FUNCTIONAL_ANNOTATION = "functional_annotation"
+    MEMBERSHIPS = "memberships"
+    XREFS = "xrefs"
+    PUBLICATIONS = "publications"
+    TRANSCRIPTS = "transcripts"
+    EXONS = "exons"
+
+
 class QueryPlan(CustomBaseModel):
     """A validated interpretation, separate from authoritative query results."""
 
@@ -91,6 +100,7 @@ class QueryPlan(CustomBaseModel):
     location: QueryLocation | None = None
     clarifications: list[QueryClarification] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
+    gene_evidence: list[GeneEvidence] = Field(default_factory=list)
 
 
 PLANNING_INSTRUCTIONS = """Interpret the latest user request into QueryPlan.
@@ -110,6 +120,11 @@ Keep unresolved location, flank and assembly values unspecified rather than
 inventing coordinates or defaults. Clarify only ambiguities that materially
 change the requested results. Record exclusions separately from positive concepts.
 Keep greetings and API help as their own intents without invented search facets.
+Set gene_evidence only for details needed to answer the question: functional_annotation,
+memberships, xrefs, publications, transcripts or exons. A basic gene lookup needs
+none. Transcript identity/location does not require exons. Genomic proximity or
+associations do not by themselves require transcript/exon details. Use meaning and
+conversation context; never add unrelated annotation collections or invent terms.
 Interpretation does not establish that any requested capability is implemented.
 """
 

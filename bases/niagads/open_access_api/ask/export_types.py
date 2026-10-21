@@ -11,6 +11,7 @@ from niagads.genome_reference.human import GenomeBuild
 from niagads.open_access_api.ask.planning import (
     BooleanOperator,
     ConceptCategory,
+    GeneEvidence,
     LocationKind,
     QueryIntent,
 )
@@ -27,6 +28,7 @@ class AskTypeExporter(ComponentBaseMixin):
         """
         constants = {
             "Entity": {member.name: member.value for member in Entity},
+            "GeneEvidence": {member.name: member.value for member in GeneEvidence},
             "QueryIntent": {member.name: member.value for member in QueryIntent},
             "ConceptCategory": {
                 member.name: member.value for member in ConceptCategory

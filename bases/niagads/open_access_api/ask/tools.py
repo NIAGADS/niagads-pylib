@@ -12,11 +12,22 @@ from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
 
-async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> dict:
+async def _execute(
+    ctx: RunContext[dict],
+    operation: str,
+    parameters: dict,
+    *,
+    transcript: str | None = None,
+) -> dict:
     """Retrieve through the existing API and expose a compact evidence summary."""
+    plan = ctx.deps.get("query_plan")
     result = await retrieve(ctx.deps["client"], operation, parameters)
     ctx.deps["store"].add(result)
-    return ctx.deps["store"].summary(result.id)
+    return ctx.deps["store"].summary(
+        result.id,
+        gene_evidence=plan.gene_evidence if plan else (),
+        transcript=transcript,
+    )
 
 
 async def search_resources(
@@ -57,7 +68,7 @@ async def get_gene(
         ResponseContent.FULL, ResponseContent.SUMMARY
     ] = ResponseContent.SUMMARY,
 ) -> dict:
-    """Look up a gene; request full content for curated-list association evidence.
+    """Look up a gene; request full content for needed annotations or curated lists.
 
     Args:
         ctx (RunContext[dict]): Agent context with the API client and result store.
@@ -103,18 +114,14 @@ async def get_track_data(
     }
 
 
-async def get_gene_structure(ctx: RunContext[dict], gene: str) -> dict:
-    """Discover transcript IDs/locations before selecting a transcript for associations."""
-    summary = await _execute(ctx, "gene_structure", {"gene": gene})
-    if "result_id" in summary:
-        result = ctx.deps["store"].get(summary["result_id"])
-        transcripts = [t for row in result.rows for t in row.get("transcripts", [])]
-        summary["transcripts"] = [
-            {k: t[k] for k in ("id", "name", "location") if k in t}
-            for t in transcripts[:20]
-        ]
-        summary["transcripts_truncated"] = len(transcripts) > 20
-    return summary
+async def get_gene_structure(
+    ctx: RunContext[dict], gene: str, transcript: str | None = None
+) -> dict:
+    """Fetch gene structure; optionally focus the model summary on an exact transcript.
+
+    Transcript/exon projection follows semantic planning; stored records stay intact.
+    """
+    return await _execute(ctx, "gene_structure", {"gene": gene}, transcript=transcript)
 
 
 async def get_gene_associations(
