@@ -3,11 +3,19 @@
 import asyncio
 import math
 
-from aiohttp import ClientError
+from aiohttp import ClientError, ClientResponseError
 from niagads.api.common.config import QueryEmbeddingSettings
 from niagads.common.core import ComponentBaseMixin
 from niagads.requests.core import HttpClientSessionManager
 from pydantic import FiniteFloat, TypeAdapter
+
+
+class QueryEmbeddingError(RuntimeError, ComponentBaseMixin):
+    """Preserve embedding failures and provider references for internal callers."""
+
+    def __init__(self, message: str, request_id: str | None = None):
+        RuntimeError.__init__(self, message)
+        self.request_id = request_id
 
 
 class OpenRouterQueryEmbedding(ComponentBaseMixin):
@@ -45,7 +53,7 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
                     f"Expected a finite, nonzero embedding norm; received {norm!r}."
                 )
         except (KeyError, TypeError, ValueError) as exc:
-            raise RuntimeError(
+            raise QueryEmbeddingError(
                 f"OpenRouter query embedding validation failed (model {model}): "
                 f"{type(exc).__name__}: {exc}"
             ) from exc
@@ -72,15 +80,24 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
                     json={"model": model, "input": query, "encoding_format": "float"},
                     raise_for_status=False,
                 ) as response:
+                    request_id = response.headers.get("x-request-id")
                     if response.status >= 400:
                         detail = await response.text()
-                        raise RuntimeError(
-                            "OpenRouter query embedding failed "
-                            f"(HTTP {response.status}, model {model}): {detail}"
-                        )
-                    return self.normalize_embedding(await response.json(), model)
+                        try:
+                            response.raise_for_status()
+                        except ClientResponseError as exc:
+                            raise QueryEmbeddingError(
+                                "OpenRouter query embedding failed "
+                                f"(HTTP {response.status}, model {model}): {detail}",
+                                request_id,
+                            ) from exc
+                    try:
+                        payload = await response.json()
+                        return self.normalize_embedding(payload, model)
+                    except (ValueError, QueryEmbeddingError) as exc:
+                        raise QueryEmbeddingError(str(exc), request_id) from exc
         except (ClientError, asyncio.TimeoutError) as exc:
-            raise RuntimeError(
+            raise QueryEmbeddingError(
                 f"OpenRouter query embedding failed (model {model}): "
                 f"{type(exc).__name__}: {exc}"
             ) from exc

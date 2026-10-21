@@ -1,15 +1,19 @@
 """Typed tool definitions adapting existing API operations, never database access."""
 
-import logging
 from typing import Annotated, Literal
 
-import httpx
 from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.api.common.types import ResponseContent
 from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
-from niagads.open_access_api.ask.contracts import Presentation
+from niagads.open_access_api.ask.contracts import AskErrorCode, AskIssue, Presentation
+from niagads.open_access_api.ask.errors import (
+    RetrievalError,
+    issue_for_exception,
+    make_issue,
+)
 from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
+from niagads.open_access_api.ask.telemetry import log_failure
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
@@ -18,21 +22,28 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
     """Retrieve through the existing API and expose a compact evidence summary."""
     try:
         result = await retrieve(ctx.deps["client"], operation, parameters)
-        ctx.deps["store"].add(result)
+        try:
+            ctx.deps["store"].add(result)
+        except ValueError as exc:
+            raise RetrievalError(
+                make_issue(AskErrorCode.USAGE_LIMIT, operation)
+            ) from exc
         return ctx.deps["store"].summary(result.id)
-    except NotImplementedError:
-        logging.getLogger(__name__).exception(
-            "ASK API operation unavailable: %s", operation
+    except Exception as exc:
+        issue = issue_for_exception(
+            exc, operation, ctx.deps["client"].headers.get("x-request-id")
         )
-        status = "unsupported"
-        detail = "This API operation or its required embedding model is unavailable."
-    except (httpx.HTTPError, ValueError):
-        logging.getLogger(__name__).exception("ASK API retrieval failed: %s", operation)
-        status = "retrieval_error"
-        detail = "API retrieval failed or exceeded prototype limits; narrow the query or retry."
-    ctx.deps.setdefault("warnings", []).append(detail)
-    ctx.deps.setdefault("failures", []).append(status)
-    return {"status": status, "detail": detail}
+        log_failure(exc, issue)
+        issues = ctx.deps.setdefault("issues", [])
+        if issue not in issues:
+            issues.append(issue)
+        status = (
+            "unsupported"
+            if issue.code == AskErrorCode.UNSUPPORTED
+            else "retrieval_error"
+        )
+        ctx.deps.setdefault("failures", []).append(status)
+        return {"status": status, **issue.model_dump(mode="json")}
 
 
 async def search_resources(
@@ -45,11 +56,18 @@ async def search_resources(
     operation = SEARCH_OPERATIONS.get(entity)
     if operation is None:
         detail = (
-            "Variant semantic search remains planned; use a variant identifier."
+            "Searching variants by meaning is not available. "
+            "Use a variant identifier instead."
             if entity == Entity.VARIANT
-            else f"Semantic search for {entity.value} is not supported."
+            else "Searching this type of record is not available. Ask about genes or datasets."
         )
-        ctx.deps.setdefault("warnings", []).append(detail)
+        ctx.deps.setdefault("issues", []).append(
+            AskIssue(
+                code=AskErrorCode.UNSUPPORTED,
+                operation="search_resources",
+                message=detail,
+            )
+        )
         ctx.deps.setdefault("failures", []).append("unsupported")
         return {"status": "unsupported", "detail": detail}
     return await _execute(ctx, operation, {"query": query, "limit": limit})
@@ -141,6 +159,9 @@ async def get_transcript_associations(
     selected = [t for t in transcripts if t.get("id") == transcript]
     if len(selected) != 1 or not selected[0].get("location"):
         ctx.deps.setdefault("failures", []).append("clarification")
+        ctx.deps.setdefault("warnings", []).append(
+            "Select a transcript ID with a location from the gene structure."
+        )
         return {
             "status": "clarification",
             "detail": "Select a transcript ID with a location from the gene structure.",
@@ -175,13 +196,18 @@ async def get_region_associations(
 async def find_phenotype_genes(ctx: RunContext[dict], phenotype: str) -> dict:
     """Report phenotype-to-gene retrieval readiness; never substitute semantic hits."""
     detail = (
-        "Phenotype-associated gene retrieval is pending local ORM/API integration. "
-        "The intended response combines curated-list and +/-10 kb proximity "
-        "evidence with data_source provenance; semantic search is not equivalent."
+        "Finding genes associated with a phenotype is not available. "
+        "You can look up a gene or retrieve associations for a known gene instead."
     )
-    ctx.deps.setdefault("warnings", []).append(detail)
+    ctx.deps.setdefault("issues", []).append(
+        AskIssue(
+            code=AskErrorCode.UNSUPPORTED,
+            operation="find_phenotype_genes",
+            message=detail,
+        )
+    )
     ctx.deps.setdefault("failures", []).append("unsupported")
-    return {"status": "unsupported", "phenotype": phenotype, "detail": detail}
+    return {"status": "unsupported", "detail": detail}
 
 
 async def find_api_operations(ctx: RunContext[dict], query: str) -> dict:

@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import logging
 from uuid import uuid4
 
 import httpx
@@ -11,8 +10,9 @@ from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.contracts import AskResponse, Presentation
+from niagads.open_access_api.ask.errors import issue_for_exception
 from niagads.open_access_api.ask.results import ResultStore
-from pydantic import ValidationError
+from niagads.open_access_api.ask.telemetry import log_failure
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
 from pydantic_ai.usage import UsageLimits
@@ -50,7 +50,11 @@ def sanitize_history(payload: dict) -> dict:
                 raise ValueError("Message text must be a string")
             size += len(text)
             if len(text) > 8000 or size > 16000:
-                raise ValueError("Conversation context exceeds prototype limit")
+                raise HTTPException(
+                    413,
+                    "This conversation is too long. "
+                    "Start a new session with a shorter question.",
+                )
             texts.append({"type": "text", "text": text})
         if texts:
             clean.append({"id": str(uuid4()), "role": message["role"], "parts": texts})
@@ -64,15 +68,9 @@ def get_settings() -> AskSettings:
     try:
         return AskSettings()
     except ValueError as exc:
-        if isinstance(exc, ValidationError):
-            logging.getLogger(__name__).error(
-                "Invalid assistant configuration: %s",
-                exc.errors(include_input=False, include_context=False),
-            )
-        else:
-            logging.getLogger(__name__).exception("Invalid assistant configuration")
+        log_failure(exc, issue_for_exception(exc, "assistant"))
         raise HTTPException(
-            503, "Invalid assistant configuration; configure an explicit free model."
+            503, "ASK NIAGADS is unavailable. Contact support if the problem continues."
         ) from exc
 
 
@@ -81,7 +79,10 @@ def get_agent(settings: AskSettings = Depends(get_settings)):
     try:
         return build_agent(settings)
     except ValueError as exc:
-        raise HTTPException(503, str(exc)) from exc
+        log_failure(exc, issue_for_exception(exc, "assistant"))
+        raise HTTPException(
+            503, "ASK NIAGADS is unavailable. Contact support if the problem continues."
+        ) from exc
 
 
 def get_api_transport(request: Request) -> httpx.AsyncBaseTransport:
@@ -101,7 +102,9 @@ async def ask(
     async for chunk in request.stream():
         raw.extend(chunk)
         if len(raw) > 65536:
-            raise HTTPException(413, "Conversation request exceeds 64 KiB")
+            raise HTTPException(
+                413, "The conversation is too long. Start a new session."
+            )
     try:
         payload = json.loads(raw)
         if not isinstance(payload, dict):
@@ -109,7 +112,14 @@ async def ask(
         clean = sanitize_history(payload)
         run_input = VercelAIAdapter.build_run_input(json.dumps(clean).encode())
     except (ValueError, TypeError) as exc:
-        raise HTTPException(422, "Invalid conversation: " + str(exc)) from exc
+        log_failure(
+            exc,
+            issue_for_exception(exc, "assistant", request.headers.get("x-request-id")),
+        )
+        raise HTTPException(
+            422,
+            "The conversation is invalid. Send a text question or start a new session.",
+        ) from exc
     adapter = VercelAIAdapter(agent=agent, run_input=run_input, sdk_version=7)
     store = ResultStore()
     # API help needs registered operations, not unrelated application server metadata.
@@ -118,9 +128,14 @@ async def ask(
         version="prototype",
         routes=request.app.routes,
     )
-    deps = {"store": store, "spec": spec, "warnings": [], "failures": []}
+    deps = {"store": store, "spec": spec, "warnings": [], "failures": [], "issues": []}
+
+    result_sent = False
 
     async def complete(result):
+        nonlocal result_sent
+        if result_sent:
+            return
         presentations = store.presentations or [
             Presentation(component="table", result_id=r.id)
             for r in list(store.results.values())[:6]
@@ -138,8 +153,12 @@ async def ask(
             status=status,
             results=list(store.results.values()),
             presentation=presentations,
-            warnings=deps["warnings"],
+            warnings=list(dict.fromkeys(deps["warnings"])),
+            issues=list(
+                {issue.model_dump_json(): issue for issue in deps["issues"]}.values()
+            ),
         )
+        result_sent = True
         yield DataChunk(
             type="data-niagads-result", data=envelope.model_dump(mode="json")
         )
@@ -150,6 +169,7 @@ async def ask(
             for name in ("authorization", "cookie", "x-request-id")
             if name in request.headers
         }
+        headers.setdefault("x-request-id", str(uuid4()))
         try:
             async with asyncio.timeout(settings.deadline):
                 async with httpx.AsyncClient(
@@ -159,9 +179,8 @@ async def ask(
                     timeout=settings.api_timeout,
                 ) as client:
                     deps["client"] = client
-                    events = adapter.run_stream(
+                    native_events = adapter.run_stream_native(
                         deps=deps,
-                        on_complete=complete,
                         usage_limits=UsageLimits(
                             request_limit=settings.model_requests,
                             tool_calls_limit=settings.tool_calls,
@@ -170,15 +189,41 @@ async def ask(
                         ),
                     )
 
+                    terminal_issue = None
+
+                    async def observed_events():
+                        nonlocal terminal_issue
+                        try:
+                            async for event in native_events:
+                                yield event
+                        except Exception as exc:
+                            terminal_issue = issue_for_exception(
+                                exc, "assistant", headers.get("x-request-id")
+                            )
+                            log_failure(exc, terminal_issue)
+                            raise
+
+                    events = adapter.transform_stream(
+                        observed_events(), on_complete=complete
+                    )
+
                     async def safe_events():
                         async for event in events:
                             if isinstance(event, ErrorChunk):
-                                logging.getLogger(__name__).error(
-                                    "ASK stream error: %s", event.error_text
-                                )
-                                yield ErrorChunk(
-                                    errorText="Assistant provider or tool failed. Retry or narrow the question."
-                                )
+                                issue = terminal_issue
+                                if issue is None:
+                                    exc = RuntimeError(
+                                        "Assistant stream reported an error"
+                                    )
+                                    issue = issue_for_exception(
+                                        exc, "assistant", headers.get("x-request-id")
+                                    )
+                                    log_failure(exc, issue)
+                                # Retain evidence when answer generation fails.
+                                if store.results or deps["issues"]:
+                                    async for result_event in complete(None):
+                                        yield result_event
+                                yield ErrorChunk(errorText=issue.model_dump_json())
                             else:
                                 yield event
 
@@ -186,10 +231,14 @@ async def ask(
                         yield event
         except asyncio.CancelledError:
             raise
-        except Exception:
-            logging.getLogger(__name__).exception("ASK assistant request failed")
-            # Never expose upstream credentials, raw provider bodies, or stack traces.
-            yield 'data: {"type":"error","errorText":"Assistant request failed or reached its limit. Retry or narrow the question."}\n\n'
+        except Exception as exc:
+            issue = issue_for_exception(exc, "assistant", headers.get("x-request-id"))
+            log_failure(exc, issue)
+            if store.results or deps["issues"]:
+                async for event in complete(None):
+                    yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
+            event = ErrorChunk(errorText=issue.model_dump_json())
+            yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(
