@@ -2,6 +2,14 @@
 
 ## ASK NIAGADS alpha
 
+* Identify the best matching source phrase within a semantically matched document
+  chunk for gene, variant, and track searches. Embedding similarity identifies
+  the winning chunk but does not locate an exact phrase. Return the full matched
+  chunk for now; evaluate extracting a supporting source passage for more precise
+  evidence and LLM summaries. Example: searching genes for `blood` returns F13B
+  (`ENSG00000143278`, coagulation factor XIII B chain). `matched_text` should
+  contain the winning document chunk, with a future refinement identifying the
+  passage supporting its relevance to blood instead of echoing the query.
 * Deferred: implement batch ontology-based ORM retrieval for gene documents and
   tracks. See [Prompt 006](developer-notes/plans/ask/deferred-prompts.md#prompt-006-ontology-based-retrieval-for-gene-documents-and-tracks)
   for association paths and scope. Activate only when explicitly requested.

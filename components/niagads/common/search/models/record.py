@@ -24,7 +24,7 @@ class SearchMatch(CustomBaseModel):
         title="Record ID",
         description="unique record identifier",
     )
-    # FIXME: define record summary for each record type -> display_id, description?
+
     matched_record_details: MatchedRecordDetails = Field(
         title="Qualifying or descriptive information for the record"
     )

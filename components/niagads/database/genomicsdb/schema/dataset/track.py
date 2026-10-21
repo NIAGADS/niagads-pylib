@@ -326,7 +326,8 @@ class Track(
         matches = (
             select(
                 ChunkMetadata.row_id,
-                func.max(score).label("score"),
+                ChunkMetadata.chunk_text.label("matched_text"),
+                score.label("score"),
             )
             .select_from(ChunkEmbedding)
             .join(
@@ -336,7 +337,12 @@ class Track(
             .where(
                 ChunkMetadata.table_id == table_ref.table_id,
             )
-            .group_by(ChunkMetadata.row_id)
+            .distinct(ChunkMetadata.row_id)
+            .order_by(
+                ChunkMetadata.row_id,
+                score.desc(),
+                ChunkMetadata.chunk_metadata_id.asc(),
+            )
             .subquery("semantic_matches")
         )
         stmt = (
@@ -344,7 +350,7 @@ class Track(
                 cls.source_id.label("matched_record_id"),
                 cls._build_record_details(cls).label("matched_record_details"),
                 literal(str(Entity.TRACK)).label("matched_record_type"),
-                literal(phrase).label("matched_text"),
+                matches.c.matched_text,
                 literal(MatchType.SEMANTIC.name).label("match_type"),
                 literal(MatchType.SEMANTIC.rank() - 1).label("rank"),
                 matches.c.score,
