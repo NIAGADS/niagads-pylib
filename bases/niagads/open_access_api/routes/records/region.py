@@ -51,7 +51,7 @@ async def query_region(
 @router.get(
     "/associations",
     summary="Get region associations",
-    description="Retrieve associations in a one-based inclusive region.",
+    description="Retrieve associations in a genomic span.",
     response_description="Regional association records or per-track summaries.",
     operation_id="getRegionAssociations",
     response_model=Union[
@@ -89,10 +89,7 @@ async def get_region_associations(
 @router.get(
     "/variants",
     summary="Get region variants",
-    description=(
-        "Retrieve all variants in a one-based inclusive region, with pagination. "
-        "ORM retrieval integration is pending. Valid requests currently return 501."
-    ),
+    description=("Retrieve all variants in a genomic span."),
     response_description="Regional variant records.",
     operation_id="getRegionVariants",
     openapi_extra={"x-status": "planned"},
