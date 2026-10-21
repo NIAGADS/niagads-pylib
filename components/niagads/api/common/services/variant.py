@@ -39,6 +39,24 @@ class VariantEndpointService(BaseEndpointService):
             for k, mapped_features in mappings.items()
         }
 
+    async def get_feature_location(
+        self, id: str, flank: int = 0
+    ) -> OneBasedGenomicRegion:
+        mappings = await self.get_record_mappings([id])
+
+        if not mappings[id]:
+            raise HTTPException(status_code=404, detail=f"Variant `{id}` not found")
+
+        mapped_feature = mappings[id]
+
+        feature_location = OneBasedGenomicRegion.from_database_range(
+            chrosomome=mapped_feature["chromosome"], span=mapped_feature["span"]
+        )
+        if flank:
+            feature_location.start -= flank
+            feature_location.end -= flank
+        return feature_location
+
     async def fetch_record(self, variant_id: str) -> list:
         """Retrieve a variant record or raise HTTP 404 when it is missing.
 
