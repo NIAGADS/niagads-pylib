@@ -25,10 +25,6 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
         try:
             if "error" in payload:
                 raise ValueError(f"Provider error: {payload['error']!r}")
-            if payload["model"] != model:
-                raise ValueError(
-                    f"Expected model {model!r}; received {payload['model']!r}."
-                )
             if len(payload["data"]) != 1:
                 raise ValueError(
                     f"Expected one embedding; received {len(payload['data'])}."
