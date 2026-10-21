@@ -21,7 +21,7 @@ from niagads.open_access_api.ask.feedback import (
 from niagads.open_access_api.ask.planning import build_query_planner
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
-from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
+from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk, StartChunk
 from pydantic_ai.usage import RunUsage, UsageLimits
 from starlette.responses import Response, StreamingResponse
 
@@ -183,7 +183,7 @@ async def ask(
             )
         )
         envelope = AskResponse(
-            feedback_reference=feedback_reference if not failed else None,
+            feedback_reference=feedback_reference,
             status=status,
             results=list(store.results.values()),
             presentation=store.presentations,
@@ -198,62 +198,59 @@ async def ask(
         )
 
     async def stream():
+        nonlocal feedback_reference
+        message_started = False
         headers = {
             name: request.headers[name]
             for name in ("authorization", "cookie", "x-request-id")
             if name in request.headers
         }
         headers.setdefault("x-request-id", str(uuid4()))
-        try:
-            async with asyncio.timeout(settings.deadline):
-                async with httpx.AsyncClient(
-                    transport=transport,
-                    base_url="http://niagads.internal",
-                    headers=headers,
-                    timeout=settings.api_timeout,
-                ) as client:
-                    deps["client"] = client
-                    usage = RunUsage()
-                    usage_limits = UsageLimits(
-                        request_limit=settings.model_requests,
-                        tool_calls_limit=settings.tool_calls,
-                        input_tokens_limit=20000,
-                        output_tokens_limit=12000,
-                    )
-                    planned = await build_query_planner(agent.model).run(
-                        json.dumps(clean["messages"]),
-                        usage=usage,
-                        usage_limits=usage_limits,
-                    )
-                    deps["query_plan"] = planned.output
-                    if planned.output.clarifications:
-                        deps["failures"].append("clarification")
-                    if planned.output.exclusions:
-                        deps["failures"].append("unsupported")
-                        deps["issues"].append(
-                            AskIssue(
-                                code="unsupported",
-                                operation="query_planning",
-                                message="Exclusions are deferred and have not been applied.",
-                            )
+        with (
+            logfire.span("ASK NIAGADS response") if feedback_enabled else nullcontext()
+        ):
+            if feedback_enabled:
+                feedback_reference = create_feedback_reference(feedback_secret)
+            try:
+                async with asyncio.timeout(settings.deadline):
+                    async with httpx.AsyncClient(
+                        transport=transport,
+                        base_url="http://niagads.internal",
+                        headers=headers,
+                        timeout=settings.api_timeout,
+                    ) as client:
+                        deps["client"] = client
+                        usage = RunUsage()
+                        usage_limits = UsageLimits(
+                            request_limit=settings.model_requests,
+                            tool_calls_limit=settings.tool_calls,
+                            input_tokens_limit=20000,
+                            output_tokens_limit=12000,
                         )
-                    native_events = adapter.run_stream_native(
-                        deps=deps,
-                        usage=usage,
-                        usage_limits=usage_limits,
-                    )
-
-                    async def observed_events():
-                        nonlocal feedback_reference
-                        with (
-                            logfire.span("ASK NIAGADS response")
-                            if feedback_enabled
-                            else nullcontext()
-                        ):
-                            if feedback_enabled:
-                                feedback_reference = create_feedback_reference(
-                                    feedback_secret
+                        planned = await build_query_planner(agent.model).run(
+                            json.dumps(clean["messages"]),
+                            usage=usage,
+                            usage_limits=usage_limits,
+                        )
+                        deps["query_plan"] = planned.output
+                        if planned.output.clarifications:
+                            deps["failures"].append("clarification")
+                        if planned.output.exclusions:
+                            deps["failures"].append("unsupported")
+                            deps["issues"].append(
+                                AskIssue(
+                                    code="unsupported",
+                                    operation="query_planning",
+                                    message="Exclusions are deferred and have not been applied.",
                                 )
+                            )
+                        native_events = adapter.run_stream_native(
+                            deps=deps,
+                            usage=usage,
+                            usage_limits=usage_limits,
+                        )
+
+                        async def observed_events():
                             try:
                                 async for event in native_events:
                                     yield event
@@ -266,46 +263,55 @@ async def ask(
                                 )
                                 raise
 
-                    events = adapter.transform_stream(
-                        observed_events(), on_complete=complete
-                    )
-
-                    async def stream_events():
-                        yield DataChunk(
-                            type="data-niagads-plan",
-                            data=planned.output.model_dump(mode="json"),
+                        events = adapter.transform_stream(
+                            observed_events(), on_complete=complete
                         )
-                        async for event in events:
-                            if isinstance(event, ErrorChunk):
-                                if store.results:
-                                    async for result_event in complete(
-                                        None, failed=True
-                                    ):
-                                        yield result_event
-                                event.error_text += (
-                                    f" Reference: {headers['x-request-id']}."
-                                )
-                            yield event
 
-                    async for event in adapter.encode_stream(stream_events()):
-                        yield event
-        except asyncio.CancelledError:
-            raise
-        except Exception as exc:
-            logging.getLogger("uvicorn.error.niagads.ask").exception(
-                "ASK stream failed request_id=%s", headers["x-request-id"]
-            )
-            if store.results:
-                async for event in complete(None, failed=True):
-                    yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
-            event = ErrorChunk(
-                errorText=(
-                    f"{type(exc).__name__}: {exc} "
-                    f"Reference: {headers['x-request-id']}."
+                        async def stream_events():
+                            nonlocal message_started
+                            yield DataChunk(
+                                type="data-niagads-plan",
+                                data=planned.output.model_dump(mode="json"),
+                            )
+                            async for event in events:
+                                if isinstance(event, StartChunk):
+                                    message_started = True
+                                if isinstance(event, ErrorChunk):
+                                    if not message_started and feedback_reference:
+                                        yield StartChunk(message_id=str(uuid4()))
+                                        message_started = True
+                                    if store.results or feedback_reference:
+                                        async for result_event in complete(
+                                            None, failed=True
+                                        ):
+                                            yield result_event
+                                    event.error_text += (
+                                        f" Reference: {headers['x-request-id']}."
+                                    )
+                                yield event
+
+                        async for event in adapter.encode_stream(stream_events()):
+                            yield event
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logging.getLogger("uvicorn.error.niagads.ask").exception(
+                    "ASK stream failed request_id=%s", headers["x-request-id"]
                 )
-            )
-            yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
-            yield "data: [DONE]\n\n"
+                if not message_started and feedback_reference:
+                    event = StartChunk(message_id=str(uuid4()))
+                    yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
+                if store.results or feedback_reference:
+                    async for event in complete(None, failed=True):
+                        yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
+                event = ErrorChunk(
+                    errorText=(
+                        f"{type(exc).__name__}: {exc} "
+                        f"Reference: {headers['x-request-id']}."
+                    )
+                )
+                yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
+                yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         stream(),

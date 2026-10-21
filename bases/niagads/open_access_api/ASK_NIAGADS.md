@@ -68,7 +68,7 @@ Configure server process variables (secret values belong in secure settings):
 | ASK_API_TIMEOUT | 20 seconds per API tool, maximum 30 |
 | ASK_DEADLINE | 90 seconds for the whole query, maximum 120 |
 | ASK_TELEMETRY | false; enables optional Logfire instrumentation |
-| LOGFIRE_TOKEN | Optional server-side telemetry credential |
+| LOGFIRE_TOKEN | Logfire project write token; required for direct API telemetry and answer feedback; supply through the API runtime environment |
 | ASK_CAPTURE_CONTENT | false; explicitly opt in to model/prompt/tool content capture |
 | ASK_FEEDBACK_ENABLE | false; explicitly enables answer feedback when Logfire telemetry is available; runtime samples set TRUE |
 

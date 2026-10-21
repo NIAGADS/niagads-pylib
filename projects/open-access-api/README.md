@@ -37,6 +37,13 @@ Rebuild the image after changing `ask.build.env`. Runtime environment variables
 take precedence over values loaded from `.env`; supply credentials through the
 runtime environment file.
 
+For direct API telemetry and answer feedback, fill in `LOGFIRE_TOKEN` with a
+write token from your Logfire project in `dev.runtime.env` or `prod.runtime.env`.
+The runtime samples enable `ASK_TELEMETRY`, `ASK_CAPTURE_CONTENT`, and
+`ASK_FEEDBACK_ENABLE`. OpenRouter's Logfire integration does not supply this
+credential to the API. Keep the token out of `ask.build.env` and frontend ENV
+files. Recreate the API container after adding or changing the runtime token.
+
 ## Start the cache
 
 ```bash
