@@ -55,7 +55,10 @@ async def response_format_param(
     format: Annotated[
         ResponseFormat,
         BeforeValidator(sanitize_enum_value(ResponseFormat)),
-        Query(description="Select the response format: JSON, text, or XML."),
+        Query(
+            description="Select the response format: JSON.  plain text and XML coming soon."
+        ),
+        # Query(description="Select the response format: JSON, text, or XML."),
     ] = ResponseFormat.JSON,
 ) -> ResponseFormat:
     return format
@@ -66,7 +69,8 @@ async def record_response_format_param(
     format: Annotated[
         Literal[ResponseFormat.JSON, ResponseFormat.XML],
         BeforeValidator(sanitize_enum_value(ResponseFormat)),
-        Query(description="Select the record response format: JSON or XML."),
+        Query(description="Select the response format: JSON.  XML coming soon."),
+        # Query(description="Select the record response format: JSON or XML."),
     ] = ResponseFormat.JSON,
 ) -> ResponseFormat:
     return format
