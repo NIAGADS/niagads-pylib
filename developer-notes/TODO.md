@@ -100,6 +100,9 @@
 
 ## ETL
 
+* **Bug fix:** Correct track `study_diagnosis[].phenotype` values stored as
+  string representations of lists instead of JSON arrays. Repair existing
+  records and ensure ETL preserves phenotype lists during serialization.
 * Refine embedding document chunking into smaller, semantically distinct chunks
   so gene names and aliases are separate from pathway content. ETL should retain
   each chunk's type and determine its retrieval priority so ranking can account
