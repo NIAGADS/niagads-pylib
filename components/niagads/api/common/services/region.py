@@ -1,12 +1,14 @@
 from typing import Union
 
 from niagads.api.common.models.annotations.associations import VariantAssociation
+from niagads.api.common.models.entities.variant.records import Variant, VariantBrief
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.services.base import BaseEndpointService
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.results.associations import (
     VariantAssociation as VAOrm,
 )
+from niagads.database.genomicsdb.schema.variant.documents import Variant as VariantORM
 
 
 class RegionEndpointService(BaseEndpointService):
@@ -29,6 +31,28 @@ class RegionEndpointService(BaseEndpointService):
             feature_location.start -= flank
             feature_location.end += flank
         return feature_location
+
+    async def fetch_variants(
+        self, region_id: str, *, flank: int = 0
+    ) -> Union[list[Variant], list[VariantBrief]]:
+        """Retrieve variant records within a region and optional flanks.
+
+        Args:
+            region_id (str): Region identifier to retrieve variants for.
+            flank (int): Number of bases to extend on each side of the region.
+
+        Returns:
+            Union[list[Variant], list[VariantBrief]]: Matching records using the
+                configured response model, or an empty list if none are found.
+        """
+        region = await self.get_feature_location(region_id, flank=flank)
+        mappings = await VariantORM.retrieve_records_by_region(
+            self._context.database_session, region
+        )
+        return [
+            self._response_config.record_model(**record, id=record["niagads_id"])
+            for record in mappings[str(region)]
+        ]
 
     async def fetch_associations(
         self, region_id: str, *, flank: int = 0, summary: bool = False

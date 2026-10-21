@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Self
 
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.search.models.record import SearchMatch
@@ -576,5 +576,44 @@ class Variant(
         await cls._fetch_records_by_ref_snp_id(session, mappings)
         await cls._fetch_records_by_positional_id(session, mappings)
         await cls._fetch_records_by_structural_variant_id(session, mappings)
+
+        return mappings
+
+    @classmethod
+    async def retrieve_records_by_region(
+        cls, session: AsyncSession, region: OneBasedGenomicRegion
+    ) -> RecordRetrievalResult:
+        """Fetch full variant records overlapping a genomic region.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            region (OneBasedGenomicRegion): One-based inclusive region to query.
+
+        Returns:
+            RecordRetrievalResult: Mapping of the region identifier to matching
+                full records.
+        """
+        bin_index = await IntervalBin.find_bin_index(
+            session, region.chromosome, region.range
+        )
+        chromosome = literal_column(f"'{region.chromosome}'")
+        parent_bin = literal_column(f"'{bin_index}'::ltree")
+        region_id = str(region)
+        lookup_values = cls._build_sql_value_field([region_id])
+        region_select = cls._build_lookup_select(
+            lookup_values,
+            lookup_field=cls.bin_index,
+            where_clause=and_(
+                cls.chromosome == chromosome,
+                parent_bin.op("@>")(cls.bin_index),
+                cls.span.op("&&")(region.range),
+            ),
+        )
+        mappings = {region_id: []}
+        for row in await cls._execute_lookup(
+            session, lookup_values, region_select.subquery("region_matches")
+        ):
+            if row["record"] is not None:
+                mappings[region_id].append(row["record"])
 
         return mappings
