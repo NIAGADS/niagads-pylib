@@ -55,9 +55,9 @@ Unchecked rows are disabled at the cap; selected rows can still be deselected,
 including across pages/filters. Bulk updates cannot add beyond the cap.
 
 The client action POSTs selected IDs to `/api/track-data`. Its server-side proxy
-calls exactly `/track/{track_id}/data` for each ID in parallel using ASK_API_URL,
-with no query parameters or LLM request. This upstream endpoint is maintained in
-another branch; it was not added or tested against a live API here. IDs are
+calls exactly `/record/track/{track_id}/data` for each ID in parallel using API_INTERNAL_URL,
+with no query parameters or LLM request. The upstream endpoint is now included from the merged development base; it was
+not tested against a live API here. IDs are
 validated/encoded; authentication forwarding follows the existing ASK proxy.
 
 Each action appends an independent association table below its source track list.
@@ -101,6 +101,25 @@ Regression cases: test_association_traits.py in the Python ASK test directory.
 Python syntax/style/tool-schema checks and repository diff checks passed;
 independent targeted static review found no high-confidence defects. Tests and
 live model/database requests remain unrun under the existing policy.
+
+### Development-base merge — 2026-10-21
+
+Merged refactor/api at 4fe3a8de into the Python dashboard branch and app/oa-api at
+7d21bf3e into the frontend dashboard branch. Existing dashboard translators,
+five-track selection, fetched-data tables and phenotype-mapping fix are retained.
+Frontend conflict resolution preserves the base's Card/Alert styling and dashboard
+result grouping/raw provenance. The track-data proxy now follows API_INTERNAL_URL
+and /record/track/{track}/data, matching the merged API route. The Python TODO
+relocation is retained; dashboard follow-ups moved to developer-notes/TODO.md.
+
+Validation: merged Python syntax and ASK response/tool schemas passed; the
+ASK transport passes Black/isort. Independent merge review found no actionable
+issues. The UI workspace package rebuilt with the existing temporary compiler
+compatibility override; its build emitted inherited deprecated-module/type and
+bundling warnings. Full API-client TypeScript and targeted ESLint passed after the UI rebuild. Tests and live
+model/database calls remain unrun. Incoming unrelated whitespace was preserved;
+focused dashboard diff checks relative to the new bases pass.
+No changes to query-planning branches.
 
 ## Merged prototype checkpoint (historical)
 
@@ -242,7 +261,7 @@ AskSettings reads .env relative to the process working directory.
 The frontend uses its own .env.local setting:
 
 ```dotenv
-ASK_API_URL=http://127.0.0.1:8000
+API_INTERNAL_URL=http://127.0.0.1:8000
 ```
 
 Adjust that URL to the actual API address. OpenRouter credentials stay on the
@@ -345,7 +364,7 @@ For local continuation:
 - [Focused tests](test/bases/niagads/open_access_api/ask)
 - [Validation/defaults review](developer-notes/plans/ask/validation-and-defaults-review.md)
 - [Operation registry](bases/niagads/open_access_api/ask/operations.py)
-- [Deferred work](TODO.md)
+- [Deferred work](developer-notes/TODO.md)
 - [Frontend guide on the task branch](https://github.com/NIAGADS/niagads-viz-monorepo/blob/codex/cloud-environment-setup/apps/open-access-api-client/README.md)
 
 Suggested prompt for the next local Codex session:

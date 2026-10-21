@@ -174,3 +174,29 @@ missing terms/sources, API summary counts and excluding semantic candidates from
 trait evidence. Tests were not executed. Python syntax/Black/isort, tool-schema generation and
 both repository diff checks passed. Independent targeted static review found no
 high-confidence defects. No live model/database calls.
+
+## Development-base merge — 2026-10-21
+
+Merge refactor/api 4fe3a8de and app/oa-api 7d21bf3e into their dashboard branches.
+Resolved Python root TODO modify/delete by preserving its removal and moving only
+the dashboard follow-ups to developer-notes/TODO.md. Resolved Results.tsx by
+retaining translators/grouped results, selection actions and full raw provenance
+inside the base's Card/CardHeader/CardBody layout, preserving its Alert rendering.
+Aligned the new action proxy/tests/docs with API_INTERNAL_URL and the actual
+merged /record/track/{track}/data endpoint. All other incoming changes retained.
+
+Full staged diff checks report existing whitespace in incoming base files,
+including unrelated niagads-main source/SVG assets and Python README/TODO prose.
+The dashboard changes relative to the incoming bases pass diff checks; unrelated
+base whitespace was not rewritten. Tests/live model/database calls remain unrun.
+
+Validation: merged Python AST and ASK response/tool schemas passed; transport
+Black/isort passed. Independent merge review found no actionable issues. UI rebuilt
+using the existing temporary compiler override; warnings include an inherited
+deprecated Card import and unresolved declaration aliases/bundling directives.
+No tracked build configuration changed. Frontend type/lint checks recorded below.
+
+Final frontend verification: full open-access-api-client TypeScript and targeted
+ESLint (Results, track-data proxy and action cases) passed after the UI rebuild.
+All merge conflicts resolved. Tests and live endpoint/model/database checks not
+executed. Both development-base merges committed and pushed to dashboard branches.

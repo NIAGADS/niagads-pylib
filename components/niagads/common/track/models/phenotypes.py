@@ -14,10 +14,6 @@ class PhenotypeCount(CustomBaseModel):
     def __str__(self):
         return self.to_info_string()
 
-    @field_serializer("phenotype")
-    def serialize_phenotype(self, phenotype: Optional[OntologyTerm], _info):
-        return str(self.phenotype) if self.phenotype is not None else None
-
 
 class Phenotype(CustomBaseModel):
     disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
