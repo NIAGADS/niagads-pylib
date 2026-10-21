@@ -1,5 +1,66 @@
 # TODOs
 
+## ASK NIAGADS alpha
+
+* Identify the best matching source phrase within a semantically matched document
+  chunk for gene, variant, and track searches. Embedding similarity identifies
+  the winning chunk but does not locate an exact phrase. Return the full matched
+  chunk for now; evaluate extracting a supporting source passage for more precise
+  evidence and LLM summaries. Example: searching genes for `blood` returns F13B
+  (`ENSG00000143278`, coagulation factor XIII B chain). `matched_text` should
+  contain the winning document chunk, with a future refinement identifying the
+  passage supporting its relevance to blood instead of echoing the query.
+* Deferred: implement batch ontology-based ORM retrieval for gene documents and
+  tracks. See [Prompt 006](developer-notes/plans/ask/deferred-prompts.md#prompt-006-ontology-based-retrieval-for-gene-documents-and-tracks)
+  for association paths and scope. Activate only when explicitly requested.
+* Revisit ASK configuration loading and discoverability. `AskSettings` maps
+  `ASK_*` environment variables to unprefixed attributes through `env_prefix`
+  and reads `.env` relative to the working directory. Query embedding settings
+  use `CustomSettings.from_env()` and honor `SERVICE_ENV`, while telemetry checks
+  `LOGFIRE_TOKEN` directly in the process environment. Align these paths with
+  established project conventions and document variable-to-consumer mappings.
+  Clarify that `sample.ask.env` is a template and is not loaded automatically.
+* Deferred discussion: [ASK design prompts](developer-notes/plans/ask/deferred-prompts.md)
+  cover hard-coded capabilities, unexpected requests, extension scenarios, and
+  assessment/refactoring of Polylith base/component boundaries (Prompt 005).
+  Reference only; activate individual prompts only when explicitly requested.
+* Potential refactor: generate ASK operation metadata at build time from FastAPI
+  route definitions or an exported OpenAPI specification instead of maintaining
+  `bases/niagads/open_access_api/ask/operations.py` independently. Route definitions
+  can retain the actual Python response/record model classes; OpenAPI describes
+  their schemas but does not reliably identify the intended entity, annotation
+  kind, or default model among content-dependent alternatives. Evaluate explicit
+  route metadata for ASK eligibility, entity/annotation mapping, and model
+  selection as the single source for generation. Preserve planned-operation
+  status and explicit tool exposure; discovering a route must not automatically
+  make it callable by the agent. Generate without database startup or provider
+  calls, and detect stale or inconsistent generated metadata during build checks.
+  Assess alongside the existing frontend type exporter before implementation.
+* Local follow-up: update ORM retrieval models/methods for paginated associations
+  by region and phenotype-associated genes with curated and +/-10 kb proximity
+  evidence. Database queries belong in the ORM layer, never in API code. These
+  changes are outside the cloud prototype scope and require separate approval.
+* Wire placeholder region endpoints to those ORM methods after they are ready;
+  preserve existing API response/parameter conventions. Until then report the
+  capability as not implemented, not an empty successful result.
+* Validate the OpenRouter query embedding integration live with the user-selected
+  ETL default via OPENROUTER_EMBEDDING_MODEL=liquid/lfm-2.5-embedding-350m:free. Confirm availability and
+  compatible model/version, encoding, dimensions, and gene/track results locally.
+  Query embedding wiring is implemented; stored vectors, ETL, and ORM retrieval
+  remain unchanged. Never substitute another embedding model.
+* Conversation history is current-session only for the alpha. Deferred: persist
+  conversations across visits using the existing Valkey and AWS Cognito
+  infrastructure, which is not present on the selected development branches.
+  Inspect that infrastructure before designing the persistence integration.
+* Deferred: query variant annotations for variants predicted to impact a gene,
+  then use supporting phenotype associations to identify associated genes.
+  Variant querying infrastructure is not available yet; do not implement this
+  retrieval path in the alpha.
+* Initial gene-association evidence paths: curated gene records
+  (`associated_with_known_ad_locus` and/or `curated_list`) and associated variants
+  within the gene footprint plus 10 kb on each side. Preserve the evidence type
+  and provenance in responses; proximity does not establish predicted impact.
+
 * fix bug w/ALFA loading from dbSNP VCF: wrap in {'ALFA':}.  TODO - patch db
 
 * update schema dataset model to reflect new api model
@@ -8,9 +69,34 @@
 
 ## Project wide
 
+* Potential refactor: evaluate migrating `HttpClientSessionManager`
+  (`components/niagads/requests/core.py`) from aiohttp to HTTPX to unify shared
+  HTTP client management. Currently the manager provides pooled network sessions,
+  timeouts, request logging, JSON retrieval, and cleanup for existing consumers.
+  In contrast, ASK's `bases/niagads/open_access_api/ask/api_client.py` accepts an
+  `httpx.AsyncClient` and streams responses with a byte limit. Its caller in
+  `ask/transport.py` supplies `httpx.ASGITransport` to invoke the existing FastAPI
+  routes in process, forwarding selected request headers without a network call.
+  HTTPX is used here for that transport capability, not because agent tools
+  require a separate HTTP client implementation.
+  These uses could converge on the existing manager backed by HTTPX, preserving
+  its public retrieval/lifecycle methods while allowing an optional transport
+  and bounded streaming. First inventory callers, particularly those obtaining
+  the underlying aiohttp session through `__call__`: request/response APIs,
+  timeout semantics, connection limits, exception handling, and logging need
+  compatibility review. A direct client substitution is insufficient. Discuss
+  scope before implementation; this is a candidate refactor, not an approved
+  migration.
 * systematically review all function defintions and use `"*, "` before named parameters to enforce using they keywords
 
 ## ETL
+
+* Refine embedding document chunking into smaller, semantically distinct chunks
+  so gene names and aliases are separate from pathway content. ETL should retain
+  each chunk's type and determine its retrieval priority so ranking can account
+  for the kind of evidence matched, alongside embedding similarity. For example,
+  an `amyloid beta` match in a gene-name chunk should rank above a match in a
+  pathway chunk. Define chunk boundaries and priority rules before implementation.
 
 ### FILER
 

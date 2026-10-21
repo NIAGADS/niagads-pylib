@@ -10,8 +10,8 @@ from niagads.common.variant.models.record import VariantRecord
 from niagads.common.variant.types import VariantClass
 from niagads.database.decorators import CompressedJson
 from niagads.database.genomicsdb.schema.mixins import (
-    IdAliasMixin,
     BulkRecordRetrievalMixin,
+    IdAliasMixin,
     SearchMixin,
 )
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
@@ -136,7 +136,7 @@ class Variant(
             limit: Maximum number of matching variants to return.
 
         Returns:
-            RefSNP variants whose identifiers begin with ``search_text``.
+            Variants whose identifiers begin with ``search_text``.
         """
         if not search_text or not search_text.lower().startswith("rs"):
             return []
@@ -144,9 +144,22 @@ class Variant(
         prefix = func.concat(func.lower(literal(search_text)), literal("%"))
         record_details = func.jsonb_build_object(
             "label",
-            cls.ref_snp_id,
+            cls.niagads_id,
             "description",
             cls.variant_class,
+            "annotation",
+            func.jsonb_build_object(
+                "length",
+                cls.length,
+                "consequence_terms",
+                cls.most_severe_consequence["consequence_terms"],
+                "impact",
+                cls.most_severe_consequence["impact"],
+                "is_coding",
+                cls.most_severe_consequence["is_coding"],
+                "impacted_gene",
+                cls.most_severe_consequence["impacted_gene"],
+            ),
         )
         stmt = (
             select(
@@ -231,7 +244,9 @@ class Variant(
                 literal(str(Entity.VARIANT)).label("matched_record_type"),
                 literal(MatchType.SEMANTIC.rank()).label("rank"),
                 score.label("score"),
-                literal(phrase).label("matched_text"),
+                cls.functional_annotation_summary["embedded_text"].astext.label(
+                    "matched_text"
+                ),
                 literal(MatchType.SEMANTIC.name).label("match_type"),
             )
             .where(

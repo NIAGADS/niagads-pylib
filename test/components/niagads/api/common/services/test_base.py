@@ -66,4 +66,6 @@ async def check_cached_response(cache_state):
             assert cached_page == response
     finally:
         await cache.delete(cache_key.encrypt(), namespace=namespace)
-        await cache.delete(cache_key.encrypt_key(cache_key.no_page()), namespace=namespace)
+        await cache.delete(
+            cache_key.encrypt_key(cache_key.no_page()), namespace=namespace
+        )

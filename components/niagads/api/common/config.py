@@ -1,7 +1,8 @@
 # Settings for Open Access API microservices
-from typing import Optional
+from typing import Literal, Optional
 
 from niagads.settings.core import CustomSettings
+from pydantic import Field, SecretStr
 
 
 class Settings(CustomSettings):
@@ -33,3 +34,13 @@ class Settings(CustomSettings):
             return "lts"
 
         return f"v{self.API_VERSION.split('.')[0]}"
+
+
+class QueryEmbeddingSettings(CustomSettings):
+    """OpenRouter credentials required only when a semantic query is embedded."""
+
+    OPENROUTER_API_KEY: SecretStr
+    OPENROUTER_EMBEDDING_MODEL: Literal["liquid/lfm-2.5-embedding-350m:free"] = (
+        "liquid/lfm-2.5-embedding-350m:free"
+    )
+    OPENROUTER_EMBEDDING_TIMEOUT: float = Field(default=20, gt=0, le=30)

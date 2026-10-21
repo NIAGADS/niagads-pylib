@@ -12,4 +12,6 @@ WORKDIR /code
 COPY ./dist/$WHEEL /code/$WHEEL
 RUN pip install --no-cache-dir --upgrade /code/$WHEEL
 
+COPY ./ask.build.env /code/.env
+
 CMD ["uvicorn", "niagads.open_access_api.app:app", "--host", "0.0.0.0", "--port", "8000"]

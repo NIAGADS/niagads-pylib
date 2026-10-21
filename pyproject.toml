@@ -20,6 +20,49 @@ extend_skip_glob = [
 profile = "black"
 
 [tool.poetry]
+packages = [
+    { include = "niagads/genomicsdb_etl", from = "bases" },
+    { include = "niagads/metadata_validator_tool", from = "bases" },
+    { include = "niagads/open_access_api", from = "bases" },
+    { include = "niagads/pipeline_service", from = "bases" },
+    { include = "niagads/sql_runner", from = "bases" },
+    { include = "niagads/adsp_annotation", from = "components" },
+    { include = "niagads/api", from = "components" },
+    { include = "niagads/arg_parser", from = "components" },
+    { include = "niagads/bed", from = "components" },
+    { include = "niagads/cache", from = "components" },
+    { include = "niagads/common", from = "components" },
+    { include = "niagads/csv_parser", from = "components" },
+    { include = "niagads/csv_triples_parser", from = "components" },
+    { include = "niagads/csv_validator", from = "components" },
+    { include = "niagads/database", from = "components" },
+    { include = "niagads/decorators", from = "components" },
+    { include = "niagads/enums", from = "components" },
+    { include = "niagads/etl", from = "components" },
+    { include = "niagads/excel_parser", from = "components" },
+    { include = "niagads/exceptions", from = "components" },
+    { include = "niagads/flatfile", from = "components" },
+    { include = "niagads/ga4gh", from = "components" },
+    { include = "niagads/genome_reference", from = "components" },
+    { include = "niagads/json_validator", from = "components" },
+    { include = "niagads/metadata_parser", from = "components" },
+    { include = "niagads/metadata_serializer", from = "components" },
+    { include = "niagads/metadata_validator", from = "components" },
+    { include = "niagads/nlp", from = "components" },
+    { include = "niagads/objects", from = "components" },
+    { include = "niagads/parquet", from = "components" },
+    { include = "niagads/postgres_dbi", from = "components" },
+    { include = "niagads/rdf_parsers", from = "components" },
+    { include = "niagads/requests", from = "components" },
+    { include = "niagads/s3", from = "components" },
+    { include = "niagads/sequence", from = "components" },
+    { include = "niagads/settings", from = "components" },
+    { include = "niagads/subprocess_manager", from = "components" },
+    { include = "niagads/utils", from = "components" },
+    { include = "niagads/vcf", from = "components" },
+    { include = "niagads/vep_json_parser", from = "components" },
+]
+
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 
@@ -89,6 +132,25 @@ mypy = "^1.8.0"
 pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
 
+[tool.poetry.group.ask]
+optional = true
+
+[tool.poetry.group.ask.dependencies]
+httpx = "^0.28.1"
+
+[tool.poetry.group.ask.dependencies.pydantic-ai-slim]
+version = "2.57.0"
+extras = [
+    "openrouter",
+    "ui",
+]
+
+[tool.poetry.group.ask.dependencies.logfire]
+version = "5.2.0"
+extras = [
+    "fastapi",
+    "httpx",
+]
 [tool.poetry.scripts]
 migrate-gwas = "niagads.genomicsdb_etl.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 runpipe = "niagads.pipeline_service.runners.core:run_main"

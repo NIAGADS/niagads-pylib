@@ -1,14 +1,12 @@
+from collections.abc import Mapping, Sequence
 from typing import Any, Dict, Optional, Union
 
+from lxml import etree
 from niagads.api.common.constants import DEFAULT_NULL_STRING
 from niagads.api.common.models.context.request import RequestDetails
 from niagads.api.common.models.responses.pagination import PaginationState
 from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
-from collections.abc import Mapping, Sequence
-from typing import Union
-
-from lxml import etree
 
 
 class BaseResponseModel(CustomBaseModel):
