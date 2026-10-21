@@ -91,6 +91,13 @@
 
 ## ETL
 
+* Refine embedding document chunking into smaller, semantically distinct chunks
+  so gene names and aliases are separate from pathway content. ETL should retain
+  each chunk's type and determine its retrieval priority so ranking can account
+  for the kind of evidence matched, alongside embedding similarity. For example,
+  an `amyloid beta` match in a gene-name chunk should rank above a match in a
+  pathway chunk. Define chunk boundaries and priority rules before implementation.
+
 ### FILER
 
 * extract `is_cancer_cell`, `is_immune_cell` from track_description (probably) only relevant to ENCODE tracks
