@@ -1,5 +1,24 @@
 # ASK NIAGADS local Codex handoff
 
+## Error reporting guidance — 2026-10-21
+
+Frontend-only changes in niagads-viz-monorepo: ASK Chat now links help@niagads.org
+and the existing API GitHub issue tracker, explains that reports should include
+error details and a request reference when present, and exposes the complete
+received error in an expandable details block. FastAPI detail AND message are
+retained, restoring visible GitHub/admin instructions hidden by the formatter.
+Python handlers and proxy forwarding already preserved the response; neither was
+changed. If FastAPI never initializes, no backend response/trace exists to show;
+the proxy reference belongs to its Next.js log entry.
+
+Stack traces use a separate nested, initially collapsed "Stack trace" section
+with readable frame lines; other response fields use formatted JSON. A missing
+backend trace does not produce an empty trace section.
+
+Seven focused frontend error tests, targeted ESLint, app TypeScript and diff
+whitespace checks passed. No browser/live outage validation or backend rebuild.
+Compaction remains assigned to the user's separate handoff and was not resumed.
+
 ## Current task: chat and temporary dashboards
 
 Continue on codex/ask-chat-dashboard-navigation from updated refactor/api. The
