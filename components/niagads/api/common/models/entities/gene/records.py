@@ -70,6 +70,14 @@ class GeneBrief(GeneDescriptor, ORMCompatibleRecord):
         title="Cytogenic Location",
         description="mapping the gene to a band of the chromosome",
     )
+    associated_with_known_ad_locus: Optional[bool] = Field(
+        default=False,
+        title="Associated with Known AD Locus",
+        description=(
+            "indicates whether the gene is associated with a known "
+            "Alzheimer’s disease locus"
+        ),
+    )
 
     def __str__(self):
         return self.to_info_string()

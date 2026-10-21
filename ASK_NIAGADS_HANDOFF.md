@@ -1,5 +1,22 @@
 # ASK NIAGADS local Codex handoff
 
+## Error heading correction / association task status — 2026-10-21
+
+Frontend SDK/stream errors now get a short unexpected-error heading instead of
+raw diagnostics. FastAPI user-facing messages, references and reporting guidance
+remain visible; technical detail and traces remain in collapsed sections. Eight
+focused error tests passed. This does not fix the malformed stream in the user's
+screenshot.
+
+ASK retrieval now retains complete non-query FastAPI pages, including responses
+over 1 MiB, with row/source/limit caps removed from paired contracts. Query/search
+caps remain. Pagination still reflects FastAPI's pages (DEFAULT_PAGE_SIZE=5000),
+not automatic fetching of every page. Backend error regressions: 12 passed;
+Black/isort/diff checks passed. Added a real-API full-page comparison in
+test_transport.py, not run because live verification was stopped by the user.
+Dashboard source changes are implemented; browser/real-data validation is pending.
+The user is running the API on the host. Compaction work remains separate.
+
 ## Error reporting guidance — 2026-10-21
 
 Frontend-only changes in niagads-viz-monorepo: ASK Chat now links help@niagads.org

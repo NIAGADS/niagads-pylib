@@ -208,6 +208,13 @@ entrypoint and point the frontend's `API_INTERNAL_URL` at that running applicati
   source/page/query context. Unseeded phenotype-first requests need scope
   clarification; semantic similarity is not association evidence. Further work is
   recorded in developer-notes/TODO.md.
+- `get_gene(content="full")` retrieves curated association evidence from
+  `memberships.curated_lists`. The model-facing `gene_evidence` summary retains
+  each listing's assertions, qualifiers, evidence codes and provenance, plus
+  `associated_with_known_ad_locus` when returned. Summary lookup remains the
+  default. Curated evidence stays distinct from regional variant associations;
+  missing evidence does not establish absence of association. AD-related GO and
+  pathway evidence remains deferred in developer-notes/TODO.md.
 - API help uses FastAPI's OpenAPI generation for the registered routes. Its
   operation catalog preserves `x-status` for planned endpoints. Its
   operation catalog does not depend on application-level server metadata, which

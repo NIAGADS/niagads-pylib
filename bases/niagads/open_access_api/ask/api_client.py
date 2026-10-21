@@ -5,6 +5,7 @@ import json
 from urllib.parse import quote
 
 import httpx
+from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.types import AnnotationKind, ResponseFormat
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
@@ -47,7 +48,7 @@ async def retrieve(
             async with client.stream("GET", path, params=params) as response:
                 async for chunk in response.aiter_bytes():
                     size += len(chunk)
-                    if size > 1_048_576:
+                    if semantic_search and size > 1_048_576:
                         raise RuntimeError(
                             f"API response for {operation} exceeded 1 MiB."
                         )
@@ -69,7 +70,7 @@ async def retrieve(
                         )
         data = payload["data"]
         rows = []
-        for record in data[:50]:
+        for record in data[:50] if semantic_search else data:
             row = dict(record)
             if semantic_search:
                 row.update(row.get("matched_record_details") or {})
@@ -78,14 +79,16 @@ async def retrieve(
         if not isinstance(pagination, dict):
             raise ValueError("API returned invalid pagination metadata")
         page = int(params.get("page", 1))
-        has_more = len(data) > 50 or pagination.get("total_pages", page) > page
+        has_more = pagination.get("total_pages", page) > page or (
+            semantic_search and len(data) > 50
+        )
         return ResultSet(
             entity=definition.entity,
             annotation=definition.annotation,
             content=definition.response_config.content,
             rows=rows,
             page=page,
-            limit=50,
+            limit=50 if semantic_search else DEFAULT_PAGE_SIZE,
             has_more=has_more,
             parameters=parameters,
             sources=list(
@@ -102,7 +105,7 @@ async def retrieve(
             )
             + (
                 ["Only the first 50 records of this API page are shown."]
-                if len(data) > 50
+                if semantic_search and len(data) > 50
                 else []
             ),
         )

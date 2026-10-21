@@ -3,7 +3,7 @@
 from typing import Any, Literal
 from uuid import uuid4
 
-from niagads.api.common.constants import MAX_NUM_PAGES
+from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from niagads.api.common.types import AnnotationKind, ResponseContent
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.types import Entity
@@ -33,11 +33,11 @@ class ResultSet(CustomBaseModel):
         description="Annotation kind, or null for search candidates."
     )
     content: ResponseContent = ResponseContent.FULL
-    rows: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    rows: list[dict[str, Any]] = Field(default_factory=list)
     page: int = Field(default=1, ge=1, le=MAX_NUM_PAGES)
-    limit: int = Field(default=50, ge=1, le=100)
+    limit: int = Field(default=DEFAULT_PAGE_SIZE, ge=1)
     has_more: bool = False
-    sources: list[str] = Field(default_factory=list, max_length=100)
+    sources: list[str] = Field(default_factory=list)
     parameters: dict[str, Any] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
 

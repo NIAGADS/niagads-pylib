@@ -10,6 +10,10 @@
 
 ## ASK NIAGADS alpha
 
+* Evaluate AD-related Gene Ontology (GO) annotations and pathway memberships as
+  additional gene evidence for ASK. Define how to identify AD-relevant terms and
+  pathways and preserve their provenance and distinction from direct association
+  evidence before implementation.
 * Add Open Access to the NIAGADS code of conduct.
 * Identify the best matching source phrase within a semantically matched document
   chunk for gene, variant, and track searches. Embedding similarity identifies
@@ -66,9 +70,10 @@
   Variant querying infrastructure is not available yet; do not implement this
   retrieval path in the alpha.
 * Initial gene-association evidence paths: curated gene records
-  (`associated_with_known_ad_locus` and/or `curated_list`) and associated variants
-  within the gene footprint plus 10 kb on each side. Preserve the evidence type
-  and provenance in responses; proximity does not establish predicted impact.
+  (`associated_with_known_ad_locus` and/or `memberships.curated_lists`) and
+  associated variants within the gene footprint plus 10 kb on each side.
+  Preserve the evidence type and provenance in responses; proximity does not
+  establish predicted impact.
 
 * fix bug w/ALFA loading from dbSNP VCF: wrap in {'ALFA':}.  TODO - patch db
 

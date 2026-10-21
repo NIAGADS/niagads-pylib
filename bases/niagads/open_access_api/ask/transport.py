@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
-from niagads.open_access_api.ask.contracts import AskIssue, AskResponse
+from niagads.open_access_api.ask.contracts import AskResponse
 from niagads.open_access_api.ask.feedback import (
     AskFeedback,
     create_feedback_reference,
@@ -233,16 +233,9 @@ async def ask(
                             usage_limits=usage_limits,
                         )
                         deps["query_plan"] = planned.output
-                        if planned.output.clarifications:
-                            deps["failures"].append("clarification")
                         if planned.output.exclusions:
-                            deps["failures"].append("unsupported")
-                            deps["issues"].append(
-                                AskIssue(
-                                    code="unsupported",
-                                    operation="query_planning",
-                                    message="Exclusions are deferred and have not been applied.",
-                                )
+                            deps["warnings"].append(
+                                "Requested exclusions have not been applied."
                             )
                         native_events = adapter.run_stream_native(
                             deps=deps,
