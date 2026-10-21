@@ -1,113 +1,77 @@
-import asyncio
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
-
 import pytest
-from fastapi import FastAPI, Request
-from httpx import ASGITransport, AsyncClient
-from niagads.api.common.models.context.cache import CacheKey, CacheNamespace
-from niagads.api.common.models.context.request import RequestDetails
-from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.open_access_api.dependencies import OpenAccessEndpointContext
-from niagads.open_access_api.routes.records.track import router
 
-
-async def track_context(request: Request):
-    return request.app.state.track_context
-
-
-@pytest.fixture
-def track_app(monkeypatch):
-    application = FastAPI()
-    application.include_router(router)
-    context = SimpleNamespace(
-        database_session=AsyncMock(),
-        request_data=RequestDetails(
-            request_id="track-test", endpoint="/record/track", parameters={}
-        ),
-        cache_key=CacheKey(key="/record/track", namespace=CacheNamespace.GENOMICS),
-        cache_manager=SimpleNamespace(
-            get=AsyncMock(return_value=None), set=AsyncMock()
-        ),
-    )
-    record = {
-        "source_id": "track-a",
-        "name": "Track A",
-        "provenance": {"data_source": "NIAGADS"},
-        "file_properties": {
-            "file_name": "track-a.bed",
-            "md5sum": "a" * 32,
-            "file_size": 100,
-        },
-    }
-    lookup = AsyncMock(return_value={"track-a": [record], "missing": []})
-    monkeypatch.setattr(Track, "retrieve_records", lookup)
-    application.state.track_context = context
-    application.dependency_overrides[OpenAccessEndpointContext] = track_context
-    return application, context, lookup
-
-
-async def request_track(application, path, params):
-    async with AsyncClient(
-        transport=ASGITransport(app=application), base_url="http://test"
-    ) as client:
-        return await client.get(path, params=params)
+TRACK_IDS = (
+    "NG00166_04BE648F_STD_OA",
+    "NG00165_FB1CA9C2_STD_OA",
+)
 
 
 @pytest.mark.parametrize("content", ["full", "summary"])
-@pytest.mark.parametrize("multiple", [True, False])
-def test_track_records(track_app, content, multiple):
-    application, context, lookup = track_app
-    path = "/record/track/" if multiple else "/record/track/track-a"
-    params = {"content": content}
-    if multiple:
-        params["ids"] = "track-a,missing"
-    else:
-        lookup.return_value = {"track-a": lookup.return_value["track-a"]}
-
-    response = asyncio.run(request_track(application, path, params))
-
-    assert response.status_code == 200, response.text
-    data = response.json()["data"]
-    records = data["track-a"] if multiple else data
-    assert records[0]["id"] == "track-a"
-    assert records[0]["name"] == "Track A"
-    if content == "full":
-        assert records[0]["provenance"]["data_source"] == "NIAGADS"
-    else:
-        assert records[0]["data_source"] == "NIAGADS"
-    if multiple:
-        assert data["missing"] == []
-    lookup.assert_awaited_once_with(
-        context.database_session,
-        ["track-a", "missing"] if multiple else ["track-a"],
+def test_get_tracks_route(client, content):
+    response = client.get(
+        "/record/track/",
+        params={"ids": ",".join(TRACK_IDS), "content": content},
     )
 
+    assert response.status_code == 200, response.text
 
-@pytest.mark.parametrize("multiple", [True, False])
-def test_track_cache_hit(track_app, multiple):
-    application, context, lookup = track_app
-    record = {"id": "cached-track", "name": "Cached Track"}
-    data = {"cached-track": [record]} if multiple else [record]
-    context.cache_manager.get.return_value = {"data": data, "pagination": None}
-    path = "/record/track/" if multiple else "/record/track/cached-track"
-    params = {"content": "summary"}
-    if multiple:
-        params["ids"] = "cached-track"
+    records = response.json()["data"]
+    assert set(records) == set(TRACK_IDS)
+    for track_id in TRACK_IDS:
+        assert records[track_id]
+        for record in records[track_id]:
+            assert record["id"] == track_id
+            assert record["name"]
+            if content == "full":
+                assert isinstance(record["provenance"], dict)
+                assert "data_source" in record["provenance"]
+            else:
+                assert "data_source" in record
+                assert "provenance" not in record
 
-    response = asyncio.run(request_track(application, path, params))
+
+@pytest.mark.parametrize("track_id", TRACK_IDS)
+@pytest.mark.parametrize("content", ["full", "summary"])
+def test_get_track_route(client, track_id, content):
+    response = client.get(f"/record/track/{track_id}", params={"content": content})
 
     assert response.status_code == 200, response.text
-    result = response.json()["data"]
-    records = result["cached-track"] if multiple else result
-    assert records[0]["id"] == "cached-track"
-    lookup.assert_not_awaited()
+
+    records = response.json()["data"]
+    assert len(records) == 1
+    record = records[0]
+    assert record["id"] == track_id
+    assert record["name"]
+    if content == "full":
+        assert isinstance(record["provenance"], dict)
+        assert "data_source" in record["provenance"]
+    else:
+        assert "data_source" in record
+        assert "provenance" not in record
 
 
-def test_missing_track(track_app):
-    application, _, lookup = track_app
-    lookup.return_value = {"missing": []}
+@pytest.mark.parametrize("track_id", TRACK_IDS)
+@pytest.mark.parametrize("content", ["full", "summary"])
+def test_get_track_data(client, track_id, content):
+    response = client.get(f"/record/track/{track_id}/data", params={"content": content})
 
-    response = asyncio.run(request_track(application, "/record/track/missing", {}))
+    assert response.status_code == 200, response.text
 
-    assert response.status_code == 404
+    records = response.json()["data"]
+    assert records
+    if content == "summary":
+        assert len(records) == 1
+    for record in records:
+        assert record["track"] == track_id
+        if content == "full":
+            assert record["variant"]
+            assert record["chromosome"]
+            assert isinstance(record["position"], int)
+            assert isinstance(record["traits"], dict)
+            assert isinstance(record["pvalue"], str)
+            assert isinstance(record["neg_log10_pvalue"], (int, float))
+        else:
+            assert set(record) == {"track", "traits", "num_associations"}
+            assert record["traits"] is None or isinstance(record["traits"], dict)
+            assert isinstance(record["num_associations"], int)
+            assert record["num_associations"] > 0
