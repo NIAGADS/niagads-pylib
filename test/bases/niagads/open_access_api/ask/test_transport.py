@@ -9,7 +9,7 @@ from niagads.open_access_api.ask.contracts import AskResponse
 
 
 @pytest.mark.parametrize(
-    "question,annotation,component",
+    "question,annotation,view",
     [
         (
             "Retrieve the APOE gene record and present it as a table.",
@@ -18,13 +18,13 @@ from niagads.open_access_api.ask.contracts import AskResponse
         ),
         (
             "Retrieve the APOE gene association summary for page 1 with flank 0. "
-            "Present the counts by track as an association_source_bar chart.",
+            "Present the counts by track as a bar chart.",
             AnnotationKind.ASSOCIATIONS,
-            "association_source_bar",
+            "plot",
         ),
     ],
 )
-def test_ask_gene_results(client, question, annotation, component):
+def test_ask_gene_results(client, question, annotation, view):
     response = client.post(
         "/ask",
         json={
@@ -71,7 +71,7 @@ def test_ask_gene_results(client, question, annotation, component):
         assert result.content == ResponseContent.SUMMARY
         assert all(row["track"] and row["num_associations"] > 0 for row in result.rows)
     assert any(
-        presentation.result_id == result.id and presentation.component == component
+        presentation.result_id == result.id and presentation.view == view
         for presentation in envelope.presentation
     ), envelope.model_dump_json()
 

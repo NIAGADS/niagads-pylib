@@ -12,16 +12,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
-from niagads.open_access_api.ask.contracts import AskResponse, Presentation
+from niagads.open_access_api.ask.contracts import AskIssue, AskResponse
 from niagads.open_access_api.ask.feedback import (
     AskFeedback,
     create_feedback_reference,
     record_feedback,
 )
+from niagads.open_access_api.ask.planning import build_query_planner
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
-from pydantic_ai.usage import UsageLimits
+from pydantic_ai.usage import RunUsage, UsageLimits
 from starlette.responses import Response, StreamingResponse
 
 router = APIRouter(tags=["ASK NIAGADS"])
@@ -168,10 +169,6 @@ async def ask(
         nonlocal result_sent
         if result_sent:
             return
-        presentations = store.presentations or [
-            Presentation(component="table", result_id=r.id)
-            for r in list(store.results.values())[:6]
-        ]
         status = (
             "retrieval_error"
             if failed
@@ -189,7 +186,7 @@ async def ask(
             feedback_reference=feedback_reference if not failed else None,
             status=status,
             results=list(store.results.values()),
-            presentation=presentations,
+            presentation=store.presentations,
             warnings=list(dict.fromkeys(deps["warnings"])),
             issues=list(
                 {issue.model_dump_json(): issue for issue in deps["issues"]}.values()
@@ -216,14 +213,34 @@ async def ask(
                     timeout=settings.api_timeout,
                 ) as client:
                     deps["client"] = client
+                    usage = RunUsage()
+                    usage_limits = UsageLimits(
+                        request_limit=settings.model_requests,
+                        tool_calls_limit=settings.tool_calls,
+                        input_tokens_limit=20000,
+                        output_tokens_limit=12000,
+                    )
+                    planned = await build_query_planner(agent.model).run(
+                        json.dumps(clean["messages"]),
+                        usage=usage,
+                        usage_limits=usage_limits,
+                    )
+                    deps["query_plan"] = planned.output
+                    if planned.output.clarifications:
+                        deps["failures"].append("clarification")
+                    if planned.output.exclusions:
+                        deps["failures"].append("unsupported")
+                        deps["issues"].append(
+                            AskIssue(
+                                code="unsupported",
+                                operation="query_planning",
+                                message="Exclusions are deferred and have not been applied.",
+                            )
+                        )
                     native_events = adapter.run_stream_native(
                         deps=deps,
-                        usage_limits=UsageLimits(
-                            request_limit=settings.model_requests,
-                            tool_calls_limit=settings.tool_calls,
-                            input_tokens_limit=20000,
-                            output_tokens_limit=12000,
-                        ),
+                        usage=usage,
+                        usage_limits=usage_limits,
                     )
 
                     async def observed_events():
@@ -254,6 +271,10 @@ async def ask(
                     )
 
                     async def stream_events():
+                        yield DataChunk(
+                            type="data-niagads-plan",
+                            data=planned.output.model_dump(mode="json"),
+                        )
                         async for event in events:
                             if isinstance(event, ErrorChunk):
                                 if store.results:

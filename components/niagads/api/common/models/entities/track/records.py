@@ -125,9 +125,11 @@ class TrackMetadata(TrackRecord, ORMCompatabileMixin):
             return value
 
         return [
-            {**diagnosis, "phenotype": literal_eval(diagnosis["phenotype"])}
-            if isinstance(diagnosis, dict)
-            and isinstance(diagnosis.get("phenotype"), str)
-            else diagnosis
+            (
+                {**diagnosis, "phenotype": literal_eval(diagnosis["phenotype"])}
+                if isinstance(diagnosis, dict)
+                and isinstance(diagnosis.get("phenotype"), str)
+                else diagnosis
+            )
             for diagnosis in value
         ]

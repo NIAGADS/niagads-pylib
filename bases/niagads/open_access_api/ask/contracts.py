@@ -9,12 +9,6 @@ from niagads.common.models.base import CustomBaseModel
 from niagads.common.types import Entity
 from pydantic import ConfigDict, Field
 
-SOURCE_CHART_TYPES = (
-    (Entity.GENE, AnnotationKind.ASSOCIATIONS),
-    (Entity.VARIANT, AnnotationKind.ASSOCIATIONS),
-    (Entity.REGION, AnnotationKind.ASSOCIATIONS),
-)
-
 
 class AskIssue(CustomBaseModel):
     """An unavailable capability reported without failing the conversation."""
@@ -48,15 +42,18 @@ class ResultSet(CustomBaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-class Presentation(CustomBaseModel):
-    """A registry selection, never executable frontend code or arbitrary options."""
+class PresentationIntent(CustomBaseModel):
+    """User-facing view preference; frontend adapters own how it is fulfilled."""
 
     model_config = ConfigDict(extra="forbid")
 
-    component: Literal["table", "association_source_bar"]
     result_id: str = Field(min_length=1)
+    view: Literal["auto", "table", "plot"] = "auto"
     title: str = Field(default="Retrieved evidence", max_length=160)
-    slot: Literal["primary", "secondary"] = "primary"
+    plot_type: str | None = Field(default=None, min_length=1)
+    group_by: str | None = Field(default=None, min_length=1)
+    x: str | None = Field(default=None, min_length=1)
+    y: str | None = Field(default=None, min_length=1)
 
 
 class AskResponse(CustomBaseModel):
@@ -66,7 +63,7 @@ class AskResponse(CustomBaseModel):
 
     feedback_reference: str | None = None
     issues: list[AskIssue] = Field(default_factory=list)
-    version: Literal[2] = 2
+    version: Literal[4] = 4
     status: Literal[
         "ok",
         "empty",
@@ -74,8 +71,7 @@ class AskResponse(CustomBaseModel):
         "unsupported",
         "retrieval_error",
         "provider_error",
-        "invalid_presentation",
     ] = "ok"
     results: list[ResultSet] = Field(default_factory=list, max_length=12)
-    presentation: list[Presentation] = Field(default_factory=list, max_length=6)
+    presentation: list[PresentationIntent] = Field(default_factory=list, max_length=6)
     warnings: list[str] = Field(default_factory=list)
