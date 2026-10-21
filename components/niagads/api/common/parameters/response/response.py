@@ -53,7 +53,8 @@ async def data_response_content_param(
 
 async def response_format_param(
     format: Annotated[
-        ResponseFormat,
+        # ResponseFormat,
+        Literal[ResponseFormat.JSON],
         BeforeValidator(sanitize_enum_value(ResponseFormat)),
         Query(
             description="Select the response format: JSON.  plain text and XML coming soon."
@@ -67,7 +68,8 @@ async def response_format_param(
 # allowable response contents for single record lookups
 async def record_response_format_param(
     format: Annotated[
-        Literal[ResponseFormat.JSON, ResponseFormat.XML],
+        # Literal[ResponseFormat.JSON, ResponseFormat.XML],
+        Literal[ResponseFormat.JSON],
         BeforeValidator(sanitize_enum_value(ResponseFormat)),
         Query(description="Select the response format: JSON.  XML coming soon."),
         # Query(description="Select the record response format: JSON or XML."),
