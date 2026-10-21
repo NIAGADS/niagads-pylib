@@ -2,6 +2,7 @@
 
 ## Open Access API
 
+* Add rate limits to all endpoints except `/service` endpoints.
 * Add XML and plain text serializers.
 * Add explicit types for nested dictionaries in API responses, including
   `memberships` and `functional_annotation`, so generated OpenAPI documentation

@@ -53,7 +53,10 @@ def test_get_track_route(client, track_id, content):
 @pytest.mark.parametrize("track_id", TRACK_IDS)
 @pytest.mark.parametrize("content", ["full", "summary"])
 def test_get_track_data(client, track_id, content):
-    response = client.get(f"/record/track/{track_id}/data", params={"content": content})
+    response = client.get(
+        f"/record/track/{track_id}/data",
+        params={"content": content, "loc": "APOE"},
+    )
 
     assert response.status_code == 200, response.text
 
@@ -75,3 +78,9 @@ def test_get_track_data(client, track_id, content):
             assert record["traits"] is None or isinstance(record["traits"], dict)
             assert isinstance(record["num_associations"], int)
             assert record["num_associations"] > 0
+
+
+def test_get_track_data_requires_location(client):
+    response = client.get(f"/record/track/{TRACK_IDS[0]}/data")
+
+    assert response.status_code == 422, response.text

@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.services.base import BaseEndpointService
+from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.types import RecordRetrievalResult
 from niagads.database.genomicsdb.schema.dataset.track import Track as TrackORM
 from niagads.database.genomicsdb.schema.results.associations import (
@@ -52,26 +53,26 @@ class TrackEndpointService(BaseEndpointService):
         return mappings[track_id]
 
     async def fetch_associations(
-        self, track_id: str, *, summary: bool = False
+        self, track_id: str, *, region: OneBasedGenomicRegion, summary: bool = False
     ) -> Union[list[VariantAssociation], list[DynamicRecord]]:
-        """Retrieve variation associations for a stable track identifier.
+        """Retrieve a track's variant associations within a region.
 
         Args:
             track_id (str): Stable track identifier to resolve.
+            region (OneBasedGenomicRegion): Region constraining the lookup.
             summary (bool): Whether to return association counts by track.
 
         Returns:
             Union[list[VariantAssociation], list[DynamicRecord]]: Associations
                 or per-track traits and counts; empty when no records match.
         """
-        track_mapping = await self._lookup_records([track_id])
-        if not track_mapping[track_id]:
-            return []
+        mappings = await VAOrm.retrieve_records(self._context.database_session, region)
+        associations = [
+            association
+            for association in mappings[str(region)]
+            if association["track_stable_id"] == track_id
+        ]
 
-        track_pk = track_mapping[track_id][0]["track_id"]
-        mappings = await VAOrm.retrieve_records(
-            self._context.database_session, track_pk
-        )
         return self._generate_association_lookup_result(
-            mappings[track_pk], summary=summary
+            associations, summary=summary
         )

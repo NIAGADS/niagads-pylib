@@ -15,6 +15,7 @@ from niagads.api.common.models.responses.records import (
     RecordMappingResponse,
     RecordResponse,
 )
+from niagads.api.common.parameters.location import location_param
 from niagads.api.common.parameters.response.pagination import page_param
 from niagads.api.common.parameters.response.response import (
     data_response_content_param,
@@ -23,9 +24,14 @@ from niagads.api.common.parameters.response.response import (
     response_format_param,
 )
 from niagads.api.common.parameters.validators import parse_comma_separated_list
+from niagads.api.common.services.gene import GeneEndpointService
+from niagads.api.common.services.region import RegionEndpointService
 from niagads.api.common.services.track import TrackEndpointService
+from niagads.api.common.services.variant import VariantEndpointService
 from niagads.api.common.types import ResponseContent, ResponseFormat
 from niagads.api.common.utils import sanitize
+from niagads.common.genomic.features.models import GenomicFeature
+from niagads.common.genomic.features.types import GenomicFeatureType
 from niagads.open_access_api.dependencies import OpenAccessEndpointContext
 
 router = APIRouter(prefix="/record/track", tags=["Track"])
@@ -135,11 +141,13 @@ async def get_track(
     return response
 
 
-# FIXME: Add an optional loc parameter to constrain track data by location.
 @router.get(
     "/{track}/data",
     summary="Get track data",
-    description="Retrieve variation associations for the specified track.",
+    description=(
+        "Retrieve variant associations for the specified track with a region, "
+        "specified as a gene identifier, variant identifier, or genomic span."
+    ),
     response_description="Track variation associations.",
     operation_id="getTrackData",
     response_model=Union[
@@ -148,6 +156,7 @@ async def get_track(
 )
 async def get_track_data(
     track: str = Depends(path_track_id),
+    location: GenomicFeature = Depends(location_param),
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(response_format_param),
     content: ResponseContent = Depends(data_response_content_param),
@@ -155,10 +164,11 @@ async def get_track_data(
 ) -> RecordResponse:
     summary = content == ResponseContent.SUMMARY
     record_model = DynamicRecord if summary else VariantAssociation
+    parameters = Parameters(track=track, loc=location.feature_id, page=page)
 
     service = TrackEndpointService(
         context=context,
-        parameters=Parameters(track=track, page=page),
+        parameters=parameters,
         response_config=ResponseConfiguration(
             format=format,
             content=content,
@@ -170,7 +180,18 @@ async def get_track_data(
     result = await service.get_cached_response()
     from_cache = True
     if not result:
-        result = await service.fetch_associations(track, summary=summary)
+        location_service_class = {
+            GenomicFeatureType.GENE: GeneEndpointService,
+            GenomicFeatureType.VARIANT: VariantEndpointService,
+            GenomicFeatureType.REGION: RegionEndpointService,
+        }[location.feature_type]
+        location_service = location_service_class(
+            context=context,
+            parameters=parameters,
+            response_config=None,
+        )
+        region = await location_service.get_feature_location(location.feature_id)
+        result = await service.fetch_associations(track, region=region, summary=summary)
         from_cache = False
     response = await service.generate_response(result, from_cache=from_cache)
     return response
