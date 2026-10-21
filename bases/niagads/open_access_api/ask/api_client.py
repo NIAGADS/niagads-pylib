@@ -5,20 +5,12 @@ import json
 from urllib.parse import quote
 
 import httpx
-from niagads.api.common.exception_handlers import handled_request_exception
-from niagads.api.common.services.embeddings import QueryEmbeddingError
-from niagads.api.common.types import AnnotationKind
+from niagads.api.common.types import AnnotationKind, ResponseFormat
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.types import Entity
-from niagads.open_access_api.ask.contracts import AskErrorCode, ResultSet
-from niagads.open_access_api.ask.errors import (
-    RetrievalError,
-    issue_for_exception,
-    issue_for_status,
-    make_issue,
-)
+from niagads.open_access_api.ask.contracts import ResultSet
 from niagads.open_access_api.ask.operations import OPERATIONS
 
 
@@ -32,6 +24,7 @@ async def retrieve(
     path = definition.endpoint
     semantic_search = definition.response_config.record_model is SearchMatch
     params = dict(parameters)
+    params["format"] = ResponseFormat.JSON.value
     if definition.annotation == AnnotationKind.ASSOCIATIONS:
         params["content"] = definition.response_config.content.value
     identifier = definition.entity.value
@@ -46,62 +39,39 @@ async def retrieve(
                 raise ValueError("Invalid record identifier")
             path = path.format(**{identifier: quote(value, safe="")})
     except ValueError as exc:
-        raise RetrievalError(make_issue(AskErrorCode.INVALID_INPUT, operation)) from exc
+        raise RuntimeError(f"Invalid input for {operation}: {exc}") from exc
     chunks = []
     size = 0
-    context = {}
-    token = handled_request_exception.set(context)
-    request_id = client.headers.get("x-request-id")
     try:
         async with asyncio.timeout(client.timeout.read):
             async with client.stream("GET", path, params=params) as response:
-                request_id = response.headers.get("x-request-id") or request_id
-                try:
-                    response.raise_for_status()
-                except httpx.HTTPStatusError as exc:
-                    original = context.get("exception")
-                    issue = (
-                        issue_for_exception(original, operation, request_id)
-                        if isinstance(original, QueryEmbeddingError)
-                        else issue_for_status(
-                            response.status_code, operation, request_id
-                        )
-                    )
-                    raise RetrievalError(issue, response.status_code) from (
-                        original or exc
-                    )
                 async for chunk in response.aiter_bytes():
                     size += len(chunk)
                     if size > 1_048_576:
-                        raise RetrievalError(
-                            make_issue(
-                                AskErrorCode.RESPONSE_TOO_LARGE, operation, request_id
-                            )
+                        raise RuntimeError(
+                            f"API response for {operation} exceeded 1 MiB."
                         )
                     chunks.append(chunk)
                 body = b"".join(chunks)
-    except RetrievalError:
-        raise
-    except Exception as exc:
-        raise RetrievalError(issue_for_exception(exc, operation, request_id)) from exc
-    finally:
-        handled_request_exception.reset(token)
-    try:
-        payload = json.loads(body)
-        if not isinstance(payload, dict) or "data" not in payload:
-            raise ValueError("API returned an unsupported record envelope")
+                if response.status_code == 404:
+                    payload = {"data": []}
+                else:
+                    if response.is_error:
+                        raise RuntimeError(
+                            f"API request for {operation} failed "
+                            f"(HTTP {response.status_code}): "
+                            f"{body.decode('utf-8', errors='replace')}"
+                        )
+                    payload = json.loads(body)
+                    if "data" not in payload:
+                        raise RuntimeError(
+                            f"API response for {operation} has no data: {payload!r}"
+                        )
         data = payload["data"]
-        if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
-            raise ValueError("API returned an unsupported record shape")
         rows = []
         for record in data[:50]:
             row = dict(record)
             if semantic_search:
-                if "matched_record_id" not in row:
-                    raise ValueError(
-                        "API returned a semantic match without an identifier"
-                    )
-                row["id"] = row["matched_record_id"]
                 row.update(row.get("matched_record_details") or {})
             rows.append(row)
         pagination = payload.get("pagination") or {}
@@ -136,7 +106,9 @@ async def retrieve(
                 else []
             ),
         )
-    except (ValueError, TypeError, KeyError) as exc:
-        raise RetrievalError(
-            make_issue(AskErrorCode.MALFORMED_RESPONSE, operation, request_id)
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(
+            f"API retrieval for {operation} failed: {type(exc).__name__}: {exc}"
         ) from exc

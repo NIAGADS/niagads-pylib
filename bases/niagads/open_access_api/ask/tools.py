@@ -6,14 +6,8 @@ from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.api.common.types import ResponseContent
 from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
-from niagads.open_access_api.ask.contracts import AskErrorCode, AskIssue, Presentation
-from niagads.open_access_api.ask.errors import (
-    RetrievalError,
-    issue_for_exception,
-    make_issue,
-)
+from niagads.open_access_api.ask.contracts import AskIssue, Presentation
 from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
-from niagads.open_access_api.ask.telemetry import log_failure
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
@@ -22,28 +16,10 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
     """Retrieve through the existing API and expose a compact evidence summary."""
     try:
         result = await retrieve(ctx.deps["client"], operation, parameters)
-        try:
-            ctx.deps["store"].add(result)
-        except ValueError as exc:
-            raise RetrievalError(
-                make_issue(AskErrorCode.USAGE_LIMIT, operation)
-            ) from exc
+        ctx.deps["store"].add(result)
         return ctx.deps["store"].summary(result.id)
     except Exception as exc:
-        issue = issue_for_exception(
-            exc, operation, ctx.deps["client"].headers.get("x-request-id")
-        )
-        log_failure(exc, issue)
-        issues = ctx.deps.setdefault("issues", [])
-        if issue not in issues:
-            issues.append(issue)
-        status = (
-            "unsupported"
-            if issue.code == AskErrorCode.UNSUPPORTED
-            else "retrieval_error"
-        )
-        ctx.deps.setdefault("failures", []).append(status)
-        return {"status": status, **issue.model_dump(mode="json")}
+        raise RuntimeError(f"ASK operation {operation} failed: {exc}") from exc
 
 
 async def search_resources(
@@ -63,7 +39,7 @@ async def search_resources(
         )
         ctx.deps.setdefault("issues", []).append(
             AskIssue(
-                code=AskErrorCode.UNSUPPORTED,
+                code="unsupported",
                 operation="search_resources",
                 message=detail,
             )
@@ -201,7 +177,7 @@ async def find_phenotype_genes(ctx: RunContext[dict], phenotype: str) -> dict:
     )
     ctx.deps.setdefault("issues", []).append(
         AskIssue(
-            code=AskErrorCode.UNSUPPORTED,
+            code="unsupported",
             operation="find_phenotype_genes",
             message=detail,
         )

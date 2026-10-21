@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from uuid import uuid4
 
 import httpx
@@ -10,9 +11,7 @@ from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.contracts import AskResponse, Presentation
-from niagads.open_access_api.ask.errors import issue_for_exception
 from niagads.open_access_api.ask.results import ResultStore
-from niagads.open_access_api.ask.telemetry import log_failure
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
 from pydantic_ai.usage import UsageLimits
@@ -68,9 +67,8 @@ def get_settings() -> AskSettings:
     try:
         return AskSettings()
     except ValueError as exc:
-        log_failure(exc, issue_for_exception(exc, "assistant"))
-        raise HTTPException(
-            503, "ASK NIAGADS is unavailable. Contact support if the problem continues."
+        raise RuntimeError(
+            f"ASK configuration failed: {type(exc).__name__}: {exc}"
         ) from exc
 
 
@@ -79,9 +77,8 @@ def get_agent(settings: AskSettings = Depends(get_settings)):
     try:
         return build_agent(settings)
     except ValueError as exc:
-        log_failure(exc, issue_for_exception(exc, "assistant"))
-        raise HTTPException(
-            503, "ASK NIAGADS is unavailable. Contact support if the problem continues."
+        raise RuntimeError(
+            f"ASK agent initialization failed: {type(exc).__name__}: {exc}"
         ) from exc
 
 
@@ -112,13 +109,9 @@ async def ask(
         clean = sanitize_history(payload)
         run_input = VercelAIAdapter.build_run_input(json.dumps(clean).encode())
     except (ValueError, TypeError) as exc:
-        log_failure(
-            exc,
-            issue_for_exception(exc, "assistant", request.headers.get("x-request-id")),
-        )
         raise HTTPException(
             422,
-            "The conversation is invalid. Send a text question or start a new session.",
+            f"Invalid conversation: {type(exc).__name__}: {exc}",
         ) from exc
     adapter = VercelAIAdapter(agent=agent, run_input=run_input, sdk_version=7)
     store = ResultStore()
@@ -132,7 +125,7 @@ async def ask(
 
     result_sent = False
 
-    async def complete(result):
+    async def complete(result, failed: bool = False):
         nonlocal result_sent
         if result_sent:
             return
@@ -141,12 +134,16 @@ async def ask(
             for r in list(store.results.values())[:6]
         ]
         status = (
-            deps["failures"][0]
-            if deps["failures"]
+            "retrieval_error"
+            if failed
             else (
-                "empty"
-                if store.results and not any(r.rows for r in store.results.values())
-                else "ok"
+                deps["failures"][0]
+                if deps["failures"]
+                else (
+                    "empty"
+                    if store.results and not any(r.rows for r in store.results.values())
+                    else "ok"
+                )
             )
         )
         envelope = AskResponse(
@@ -189,55 +186,51 @@ async def ask(
                         ),
                     )
 
-                    terminal_issue = None
-
                     async def observed_events():
-                        nonlocal terminal_issue
                         try:
                             async for event in native_events:
                                 yield event
-                        except Exception as exc:
-                            terminal_issue = issue_for_exception(
-                                exc, "assistant", headers.get("x-request-id")
+                        except Exception:
+                            logging.getLogger("uvicorn.error.niagads.ask").exception(
+                                "ASK stream failed request_id=%s",
+                                headers["x-request-id"],
                             )
-                            log_failure(exc, terminal_issue)
                             raise
 
                     events = adapter.transform_stream(
                         observed_events(), on_complete=complete
                     )
 
-                    async def safe_events():
+                    async def stream_events():
                         async for event in events:
                             if isinstance(event, ErrorChunk):
-                                issue = terminal_issue
-                                if issue is None:
-                                    exc = RuntimeError(
-                                        "Assistant stream reported an error"
-                                    )
-                                    issue = issue_for_exception(
-                                        exc, "assistant", headers.get("x-request-id")
-                                    )
-                                    log_failure(exc, issue)
-                                # Retain evidence when answer generation fails.
-                                if store.results or deps["issues"]:
-                                    async for result_event in complete(None):
+                                if store.results:
+                                    async for result_event in complete(
+                                        None, failed=True
+                                    ):
                                         yield result_event
-                                yield ErrorChunk(errorText=issue.model_dump_json())
-                            else:
-                                yield event
+                                event.error_text += (
+                                    f" Reference: {headers['x-request-id']}."
+                                )
+                            yield event
 
-                    async for event in adapter.encode_stream(safe_events()):
+                    async for event in adapter.encode_stream(stream_events()):
                         yield event
         except asyncio.CancelledError:
             raise
         except Exception as exc:
-            issue = issue_for_exception(exc, "assistant", headers.get("x-request-id"))
-            log_failure(exc, issue)
-            if store.results or deps["issues"]:
-                async for event in complete(None):
+            logging.getLogger("uvicorn.error.niagads.ask").exception(
+                "ASK stream failed request_id=%s", headers["x-request-id"]
+            )
+            if store.results:
+                async for event in complete(None, failed=True):
                     yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
-            event = ErrorChunk(errorText=issue.model_dump_json())
+            event = ErrorChunk(
+                errorText=(
+                    f"{type(exc).__name__}: {exc} "
+                    f"Reference: {headers['x-request-id']}."
+                )
+            )
             yield "data: " + event.model_dump_json(by_alias=True) + "\n\n"
             yield "data: [DONE]\n\n"
 

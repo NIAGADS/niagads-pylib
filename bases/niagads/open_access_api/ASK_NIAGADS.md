@@ -238,14 +238,21 @@ Client-submitted tool results/datasets are discarded, and only user/assistant
 text is allowed. Follow-up evidence is re-fetched. There is no Valkey/Cognito
 integration or cross-visit persistence in these branches.
 
-ASK result parts also include an `issues` list of safe operation failures with
-`code`, `operation`, `message`, `request_id`, and `provider_request_id`. Empty
-successful results remain distinct from failed retrievals. Terminal stream errors
-carry the same issue JSON in the SDK error event; they do not change the already
-sent HTTP status. Existing API handlers still process internal ASGI requests.
-Their response bodies are never forwarded as ASK error messages. Request-local
-observation preserves handled exceptions for redacted logging of types, status,
-traceback locations, and correlation references, without query values or bodies.
+ASK handles failures at two boundaries:
+
+- Before streaming, setup failures raise `RuntimeError` with the original cause.
+  The existing FastAPI runtime handler returns the diagnostic detail, traceback,
+  and issue-reporting instructions. Invalid conversation input uses HTTP 422/413.
+- After streaming starts, the SDK emits an error event containing the exception
+  message and request reference. Server logs retain the chained traceback.
+  Retrieved evidence is sent before the error event when available.
+
+API retrieval requests JSON. HTTP 404 is a no-match result; other failures raise
+`RuntimeError` with the API's response details. Unsupported capabilities remain
+ordinary tool notices in the result envelope's `issues` list. There is no custom
+exception classifier, exception wrapper, or request-local exception capture.
+The frontend forwards API error responses and displays streamed error messages.
+Logfire remains optional and retains exception messages and tracebacks.
 Internal API deadlines enforce `ASK_API_TIMEOUT`; `ASK_DEADLINE` bounds the run.
 
 ## Local handoff checks

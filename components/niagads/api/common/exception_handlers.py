@@ -1,7 +1,6 @@
 """Exception handlers used by NIAGADS FastAPI applications."""
 
 import traceback
-from contextvars import ContextVar
 from math import ceil
 
 from fastapi import FastAPI, Request, Response, status
@@ -13,22 +12,6 @@ from fastapi.responses import JSONResponse
 from niagads.api.common.config import Settings
 from sqlalchemy.exc import DatabaseError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-# Set only by an internal caller; never enabled through client headers.
-handled_request_exception: ContextVar[dict | None] = ContextVar(
-    "handled_request_exception", default=None
-)
-
-
-def _observe_exception(exc: Exception) -> None:
-    """Retain a handled exception for the current internal API caller.
-
-    Args:
-        exc (Exception): The original exception, kept only for this request.
-    """
-    context = handled_request_exception.get()
-    if context is not None:
-        context["exception"] = exc
 
 
 def _request_url(request: Request) -> str:
@@ -63,7 +46,6 @@ def _service_error_response(
         JSONResponse: The service-unavailable response.
     """
 
-    _observe_exception(exc)
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={
@@ -93,7 +75,6 @@ async def runtime_exception_handler(
         JSONResponse: The validation-error or internal-server-error response.
     """
 
-    _observe_exception(exc)
     original = exc
     while original is not None:
         if isinstance(original, RequestValidationError):
@@ -133,7 +114,6 @@ async def not_implemented_exception_handler(
         JSONResponse: The not-implemented response.
     """
 
-    _observe_exception(exc)
     return JSONResponse(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         content={"detail": str(exc)},
@@ -154,7 +134,6 @@ async def request_validation_exception_handler(
         Response: FastAPI's standard validation-error response.
     """
 
-    _observe_exception(exc)
     return await fastapi_request_validation_exception_handler(request, exc)
 
 
