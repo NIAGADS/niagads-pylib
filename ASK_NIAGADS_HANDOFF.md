@@ -9,6 +9,18 @@ existing brief/summary models and chat is instructed to stay brief. UI adapters
 remain frontend owned; v4 is unchanged. Frontend ASK_CHAT_DASHBOARD.md describes
 temporary IDs, same-tab navigation, summary Cards and raw downloads. Earlier
 checkpoints below are historical. No synthetic tests or live database/model calls.
+## Paused task: compact working context — 2026-10-21
+
+User requested a break. Resume from CHECKPOINT.md and
+developer-notes/plans/ask/compact-working-context.md in the original refactor/api
+checkout. The user approved evidence-rich summaries and deterministic compaction
+of completed tool exchanges, preserving server-owned records and grounding.
+Only the plan and three real-record regression cases have been added; production
+code is unchanged. The targeted test run produced three expected RED failures
+for the not-yet-implemented include_structure summary argument. Focused tests and
+one live diagnostic are authorized. The backend at localhost:8000 is Dockerized
+without hot reload; do not claim local edits are active there. No rebuild or
+deployment has occurred. No subagents or new branches/worktrees are authorized.
 
 ## Current task: query planning integrated with dashboard v4
 
