@@ -1,12 +1,9 @@
 """Run-local datasets and deterministic summaries for model/component boundaries."""
 
-from niagads.api.common.types import ResponseContent
+from niagads.api.common.types import AnnotationKind
 from niagads.common.core import ComponentBaseMixin
-from niagads.open_access_api.ask.contracts import (
-    SOURCE_CHART_TYPES,
-    Presentation,
-    ResultSet,
-)
+from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.open_access_api.ask.contracts import PresentationIntent, ResultSet
 
 
 class ResultStore(ComponentBaseMixin):
@@ -15,7 +12,7 @@ class ResultStore(ComponentBaseMixin):
     def __init__(self):
         super().__init__()
         self.results: dict[str, ResultSet] = {}
-        self.presentations: list[Presentation] = []
+        self.presentations: list[PresentationIntent] = []
 
     def add(self, result: ResultSet) -> ResultSet:
         """Retain a result without sending its complete rows through the model."""
@@ -53,7 +50,7 @@ class ResultStore(ComponentBaseMixin):
                     and len(str(value)) <= 300
                 }
             )
-        return {
+        summary = {
             "result_id": result.id,
             "entity": result.entity.value,
             "annotation": (result.annotation.value if result.annotation else None),
@@ -64,15 +61,36 @@ class ResultStore(ComponentBaseMixin):
             "sources": result.sources[:20],
             "preview": preview,
             "warnings": result.warnings,
+            "fields": list(dict.fromkeys(key for row in result.rows for key in row)),
         }
 
-    def validate_presentation(self, presentation: Presentation) -> Presentation:
-        """Reject components referring to nonexistent or incompatible datasets."""
-        result = self.get(presentation.result_id)
-        if presentation.component == "association_source_bar":
-            if (
-                result.entity,
-                result.annotation,
-            ) not in SOURCE_CHART_TYPES or result.content != ResponseContent.SUMMARY:
-                raise RuntimeError("Source chart requires an association summary")
-        return presentation
+        if result.annotation == AnnotationKind.ASSOCIATIONS:
+            summary["association_query"] = result.parameters
+            summary["association_traits"] = self._association_traits(result)
+        return summary
+
+    def _association_traits(self, result: ResultSet) -> list[dict]:
+        """Deduplicate reported terms with source tracks across this returned page."""
+        annotations: dict[tuple[str, str | None, str], dict] = {}
+        for row in result.rows:
+            for context, terms in (row.get("traits") or {}).items():
+                for value in terms:
+                    term = OntologyTerm.model_validate(value)
+                    key = (context, term.curie, term.term)
+                    if key not in annotations:
+                        annotations[key] = {
+                            "context": context,
+                            "curie": term.curie,
+                            "term": term.term,
+                            "tracks": {},
+                        }
+                    annotations[key]["tracks"][row.get("track")] = None
+        return [
+            {**annotation, "tracks": list(annotation["tracks"])}
+            for annotation in annotations.values()
+        ]
+
+    def validate_presentation(self, intent: PresentationIntent) -> PresentationIntent:
+        """Validate evidence ownership without enforcing frontend capabilities."""
+        self.get(intent.result_id)
+        return intent

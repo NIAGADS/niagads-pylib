@@ -174,7 +174,7 @@ class BaseEndpointService(ComponentBaseMixin):
             variant_id = assoc["variant_stable_id"]
             track_id = assoc["track_stable_id"]
 
-            if matches(variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID):
+            if matches(RegularExpressions.STRUCTUAL_VARIANT_ID, variant_id):
                 variant_association = VariantAssociation(
                     **assoc,
                     variant=variant_id,

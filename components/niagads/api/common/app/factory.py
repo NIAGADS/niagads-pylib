@@ -74,7 +74,7 @@ class AppFactory:
                 "name": "Apache 2.0",
                 "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
             },
-            servers=metadata.servers,
+            servers=[{"url": Settings.from_env().API_PUBLIC_URL}],
             swagger_ui_parameters={
                 "apisSorter": "alpha",
                 "operationsSorter": "alpha",

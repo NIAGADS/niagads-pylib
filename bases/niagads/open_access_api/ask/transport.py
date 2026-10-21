@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
-from niagads.open_access_api.ask.contracts import AskIssue, AskResponse, Presentation
+from niagads.open_access_api.ask.contracts import AskIssue, AskResponse
 from niagads.open_access_api.ask.planning import build_query_planner
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
@@ -88,7 +88,12 @@ def get_api_transport(request: Request) -> httpx.AsyncBaseTransport:
     return httpx.ASGITransport(app=request.app)
 
 
-@router.post("/ask", summary="Ask NIAGADS (prototype)", operation_id="askNiagads")
+@router.post(
+    "/ask",
+    summary="Ask NIAGADS",
+    operation_id="askNiagads",
+    openapi_extra={"x-status": "alpha"},
+)
 async def ask(
     request: Request,
     agent=Depends(get_agent),
@@ -130,10 +135,6 @@ async def ask(
         nonlocal result_sent
         if result_sent:
             return
-        presentations = store.presentations or [
-            Presentation(component="table", result_id=r.id)
-            for r in list(store.results.values())[:6]
-        ]
         status = (
             "retrieval_error"
             if failed
@@ -150,7 +151,7 @@ async def ask(
         envelope = AskResponse(
             status=status,
             results=list(store.results.values()),
-            presentation=presentations,
+            presentation=store.presentations,
             warnings=list(dict.fromkeys(deps["warnings"])),
             issues=list(
                 {issue.model_dump_json(): issue for issue in deps["issues"]}.values()

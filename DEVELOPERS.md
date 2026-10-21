@@ -1,4 +1,4 @@
-# Developer notes
+# Developer FAQ
 
 ## Synchronizing Poetry packages
 

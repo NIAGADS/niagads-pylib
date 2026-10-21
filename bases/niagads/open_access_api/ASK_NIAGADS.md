@@ -20,15 +20,16 @@ plans are regenerated from sanitized conversation text on each turn. Clarificati
 pause API retrieval. Exclusions remain explicitly unsupported and also pause
 retrieval rather than silently weaken the request. The `get_track_data` tool is
 a placeholder taking `track_ids`, `loc`, and nullable `flank`; it returns an
-unsupported notice without an HTTP call. No track-data route is invented.
+unsupported notice without an HTTP call. This location-aware agent tool is
+distinct from the dashboard manual fetch, which uses the existing parameter-free
+`/record/track/{track_id}/data` route.
 
 Direct `/query/*` endpoints remain semantic-search primitives. This change does
 not implement multi-concept score fusion, AND/OR filtering of retrieved records,
 ontology expansion, cancer exclusions or genomic data endpoints. Semantic search
 hits remain candidates, not proof that every plan requirement was met.
 
-Focused planning test cases live in `test/bases/niagads/open_access_api/ask/test_planning.py`.
-Run them only when explicitly requested under AGENTS.md. Live interpretation
+Synthetic planning tests were removed at the user's request. Live interpretation
 quality and model/stream behavior have not been verified by schema generation.
 
 The existing application exposes `POST /ask`. One PydanticAI agent uses fixed API
@@ -133,7 +134,7 @@ attempts. The two query endpoint cases can each request an OpenRouter embedding
 on a cache miss. Run them only when live service/provider use is intended.
 Missing configuration and service failures are reported as failures, not skipped
 or replaced with synthetic data. For browser checks, use the normal API
-entrypoint and point the frontend's `ASK_API_URL` at that running application.
+entrypoint and point the frontend's `API_INTERNAL_URL` at that running application.
 
 ## What is connected and what is pending
 
@@ -173,9 +174,10 @@ entrypoint and point the frontend's `ASK_API_URL` at that running application.
 - Transcript tools retrieve gene structure, select the exact transcript ID,
   and pass its returned location to the region endpoint. Missing/ambiguous
   transcript selection requests clarification; it does not use the full gene.
-- Phenotype-to-gene retrieval explicitly reports unavailable. It does not use
-  semantic similarity as evidence of a disease association. Future ORM/API work
-  is listed in root TODO.md, including both curated and ±10 kb proximity sources.
+- For identified genes, association trait summaries support phenotype mapping with
+  source/page/query context. Unseeded phenotype-first requests need scope
+  clarification; semantic similarity is not association evidence. Further work is
+  recorded in developer-notes/TODO.md.
 - API help uses FastAPI's OpenAPI generation for the registered routes. Its
   operation catalog preserves `x-status` for planned endpoints. Its
   operation catalog does not depend on application-level server metadata, which
@@ -185,85 +187,54 @@ entrypoint and point the frontend's `ASK_API_URL` at that running application.
 
 ## Response contract and extension points
 
-The official Vercel UI stream carries text/tool events and a final
-`data-niagads-result` part with a validated `AskResponse`:
+ASK streams text/tool events and a final data-niagads-result part with envelope
+version 4. Results retain entity/annotation/content, authoritative rows, source
+IDs, parameters, warnings and pagination. The agent sees previews/field names and
+association trait summaries; it never supplies a replacement dataset.
+
+Presentation entries contain intent, not frontend adapter/component identifiers:
 
 ```json
 {
-  "version": 2,
-  "status": "ok",
-  "results": [{
-    "id": "server-issued-result-id", "entity": "gene",
-    "annotation": "report", "content": "full", "rows": [],
-    "page": 1, "limit": 50, "has_more": false,
-    "sources": [], "parameters": {}, "warnings": []
-  }],
-  "presentation": [{
-    "component": "table", "result_id": "server-issued-result-id",
-    "title": "Retrieved evidence", "slot": "primary"
-  }],
-  "warnings": []
+  "result_id": "<returned result ID>",
+  "view": "plot",
+  "title": "Association counts by track",
+  "plot_type": "bar",
+  "group_by": "track",
+  "x": null,
+  "y": null
 }
 ```
 
-This is a schema example, not a real query result. Results are run-local and
-server-owned; tools send bounded previews/result IDs to the model, not full
-datasets. A presentation cannot reference a result from another run. The final
-text is separate from all displayed data. Missing/invalid components are not
-executed. Status distinguishes empty, unsupported, clarification, and retrieval
-failures; provider/limit failures use safe stream errors.
+The present_results tool accepts this as its presentation argument. view is
+ auto/table/plot; plot_type and field hints are optional open strings. Python
+validates the structure and result reference. It does not decide which UI can
+render the data. Explicit table/plot requests must be recorded; auto leaves the
+choice to the client. Unsupported requests are explained by frontend adapters,
+with raw data/provenance retained. Versions 2 and 3 are not accepted by this client.
+Update the paired API and client together.
 
-Variant reports use `entity: "variant"`, `annotation: "report"`, and the existing
-table presentation.
-Association source charts require `annotation: "associations"` and
-`content: "summary"`. Association tools accept the existing API content selector:
-use `full` for individual `VariantAssociation` records or `summary` for existing
-`DynamicRecord` rows containing `track`, `traits`, and `num_associations`.
-The operation registry describes both responses with the existing record models.
+All UI source-to-component mappings, column definitions, filter choices, chart
+eligibility and layout live in the frontend app/ask/translators library. This
+follows the Charts package's source-format translator pattern. To add or change a
+view, implement/register a frontend adapter for the expected API output; no Python
+UI registry or capability export needs updating. The API remains responsible for
+its canonical record contracts and evidence integrity. Retrieval operations stay
+in ask/operations.py with their existing API response models.
 
-Supported components are `table` and `association_source_bar`. Source bars display
-the API's `num_associations` values for the tracks in the returned summary.
-ASK does not recount individual associations, aggregate gene annotation evidence,
-or infer scientific evidence from these counts. A summary page can contain only
-some tracks; preserve pagination and truncation warnings. At most 50 returned
-records are retained under the current adapter limit. Gene reports and full
-association records can be displayed in tables, not this chart.
-
-Entity identity uses `niagads.common.types.Entity`; annotation kinds use
-`niagads.api.common.types.AnnotationKind`. A report is an annotation kind; records
-remain the API's representation of retrieved information. Search candidates have
-`annotation: null` because a match is not a full entity report. Version 2 replaces
-the former mixed `kind` field; backend and frontend must be updated together.
-
-Supported retrieval operations are declared in `ask/operations.py`, with an
-endpoint, entity, annotation kind, and the existing `ResponseConfiguration`
-response/record model pair (for example, `RecordResponse` and `Gene`). This
-metadata describes the requested JSON content, including association summaries; it does not
-introduce a second record-model implementation or change route validation.
-Association summary entries use `content=ResponseContent.SUMMARY` and
-`record_model=DynamicRecord`. ASK results include `content` so presentation
-validation can distinguish summaries from full records. Model previews retain
-`num_associations` alongside the track identifier.
-Search operations are derived from entries using `SearchMatch`, independently
-of their operation names. Registering an entity does not enable new retrieval.
-
-After changing the enums or `SOURCE_CHART_TYPES`, regenerate and commit the
-frontend constants from this repository (no API startup or provider call):
+Data enums alone are shared through the existing exporter. Regenerate them only
+when these domain enums change, not when UI adapters change:
 
 ```bash
 PYTHONPATH=components:bases python -m niagads.open_access_api.ask.export_types \
   ../niagads-viz-monorepo/apps/open-access-api-client/app/ask/types.generated.ts
 ```
 
-The frontend imports the generated enums and chart compatibility rules for its
-runtime validation. New annotations can reuse the table without new renderers;
-charts require explicit compatible entity/annotation pairs.
-
-To add a component: extend the backend Presentation discriminator, validate its
-entity/annotation compatibility in ResultStore, mirror its runtime schema in
-frontend `app/ask/contracts.ts`, and add an adapter to the explicit registry in
-Results.tsx. Reuse an existing component contract. Add both backend and frontend tests before
-allowing the model to select it. Never accept arbitrary JSX, HTML, CSS, or URLs.
+The frontend config NEXT_PUBLIC_ASK_MAX_BAR_CATEGORIES controls bar cardinality
+(default 7, positive integer). This display policy is no longer a Python setting.
+Histogram filters stay disabled; categorical/boolean controls and track selection
+are UI-owned. API aggregate counts retain their values; loaded-row counts are
+labelled as such. Regional Manhattan/standalone pies remain follow-up adapters.
 
 History is browser-memory only and cleared on reload/new session. At most 12
 messages/16,000 text characters enter a run; the request body is capped at 64 KiB.
@@ -308,3 +279,19 @@ Internal API deadlines enforce `ASK_API_TIMEOUT`; `ASK_DEADLINE` bounds the run.
    unless explicitly enabled. Telemetry availability cannot block query serving.
 
 Cloud mock tests do not establish live database/provider correctness.
+
+
+## Phenotype annotations for queried genes
+
+For a known gene or named candidate genes, use get_gene_associations and its
+returned trait annotations to map the queried genes to reported phenotypes. Tool
+summaries expose association_traits (context, original term/CURIE and source
+tracks), with association_query containing the original gene/flank scope. Full
+and summary content retain these annotations; API association counts are not
+recomputed. These terms describe the retained rows/pages, not an exhaustive set
+of phenotypes or proof that a gene causes a phenotype. Missing annotations do not
+prove absence of association. Keep disease and population contexts distinct.
+
+The former unconditional find_phenotype_genes unavailable placeholder was removed.
+Without identified candidate genes, clarify scope instead of claiming an
+exhaustive phenotype-first search or treating semantic matches as associations.

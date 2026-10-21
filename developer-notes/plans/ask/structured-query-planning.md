@@ -77,3 +77,23 @@ ETL work, or genomic data endpoints. Preserve current error diagnostics.
 - Ruling: no worktrees or test execution; subagents authorized for this task.
   Prior workspace preference and repository rules override skill defaults.
   Runtime behavior remains unverified.
+
+## Dashboard integration merge
+
+Merged updated refactor/api dc5c41eb and app/oa-api c608799b into the respective
+codex/ask-structured-query-planning branches after the dashboard PRs were merged.
+Resolved conflicts in transport imports, enum exporter, generated frontend types,
+chat status UI and handoff notes. Preserved separate planning stream, shared
+budgets, dashboard v4, frontend adapter ownership, selected-track fetching and
+phenotype evidence summaries. Removed obsolete SOURCE_CHART_TYPES/Presentation
+imports; exported planning/domain enums without UI registry definitions.
+
+Removed synthetic planning tests to preserve the user's instruction against
+toy-data validation. No tests, databases or live model calls were run. The agent's
+location-aware get_track_data placeholder remains distinct from the dashboard's
+parameter-free manual track action. Retrieval implementation is a follow-up.
+
+Verification passed: Python AST parsing, transport import, response/planning/tool
+schema generation, Black and isort on the merged ASK source; frontend full
+TypeScript and targeted ESLint; focused diff whitespace checks. No unresolved
+conflicts remain. These checks do not establish real-data or live-model behavior.

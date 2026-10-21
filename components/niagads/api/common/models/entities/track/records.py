@@ -1,4 +1,5 @@
-from typing import List, Optional, Union
+from ast import literal_eval
+from typing import Any, List, Optional, Union
 
 from niagads.api.common.models.records.mixins import ORMCompatabileMixin
 from niagads.api.common.models.records.types import (
@@ -7,7 +8,13 @@ from niagads.api.common.models.records.types import (
 from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.common.track.models import TrackRecord
 from niagads.genome_reference.human import GenomeBuild
-from pydantic import ConfigDict, Field, field_serializer, model_validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 # TODO: revise -> creates circular import and can be handled differently
 # upon retrieval to by serializing into ontologyterms
@@ -95,7 +102,34 @@ class TrackMetadataBrief(ORMCompatibleRecord):
 
 class TrackMetadata(TrackRecord, ORMCompatabileMixin):
     id: str = Field(title="Track ID", description="stable track identifier")
-    biosample_characteristics: dict = Field(
+
+    biosample_characteristics: Optional[dict] = Field(
         default=None,
         title="Sample Characteristics",
     )
+
+    # FIXME: Temporary API patch for phenotype lists stored as strings by an
+    # outdated ETL serializer. Remove after the stored records are corrected.
+    @field_validator("study_diagnosis", mode="before")
+    @classmethod
+    def parse_study_diagnosis_phenotypes(cls, value: Any) -> Any:
+        """Parse stored phenotype list strings before nested validation.
+
+        Args:
+            value (Any): Study diagnosis data retrieved for the track.
+
+        Returns:
+            Any: Diagnosis data with phenotype strings parsed into lists.
+        """
+        if not isinstance(value, list):
+            return value
+
+        return [
+            (
+                {**diagnosis, "phenotype": literal_eval(diagnosis["phenotype"])}
+                if isinstance(diagnosis, dict)
+                and isinstance(diagnosis.get("phenotype"), str)
+                else diagnosis
+            )
+            for diagnosis in value
+        ]

@@ -3,20 +3,24 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Path, Query
+from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.entities.track.records import (
     TrackMetadata,
     TrackMetadataBrief,
 )
+from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.models.responses.records import (
     RecordMappingResponse,
     RecordResponse,
 )
 from niagads.api.common.parameters.response.pagination import page_param
 from niagads.api.common.parameters.response.response import (
+    data_response_content_param,
     record_response_content_param,
     record_response_format_param,
+    response_format_param,
 )
 from niagads.api.common.parameters.validators import parse_comma_separated_list
 from niagads.api.common.services.track import TrackEndpointService
@@ -126,6 +130,47 @@ async def get_track(
     from_cache = True
     if not result:
         result = await service.fetch_record(track)
+        from_cache = False
+    response = await service.generate_response(result, from_cache=from_cache)
+    return response
+
+
+# FIXME: Add an optional loc parameter to constrain track data by location.
+@router.get(
+    "/{track}/data",
+    summary="Get track data",
+    description="Retrieve variation associations for the specified track.",
+    response_description="Track variation associations.",
+    operation_id="getTrackData",
+    response_model=Union[
+        RecordResponse[VariantAssociation], RecordResponse[DynamicRecord]
+    ],
+)
+async def get_track_data(
+    track: str = Depends(path_track_id),
+    context: OpenAccessEndpointContext = Depends(),
+    format: ResponseFormat = Depends(response_format_param),
+    content: ResponseContent = Depends(data_response_content_param),
+    page: int = Depends(page_param),
+) -> RecordResponse:
+    summary = content == ResponseContent.SUMMARY
+    record_model = DynamicRecord if summary else VariantAssociation
+
+    service = TrackEndpointService(
+        context=context,
+        parameters=Parameters(track=track, page=page),
+        response_config=ResponseConfiguration(
+            format=format,
+            content=content,
+            response_model=RecordResponse,
+            record_model=record_model,
+        ),
+    )
+
+    result = await service.get_cached_response()
+    from_cache = True
+    if not result:
+        result = await service.fetch_associations(track, summary=summary)
         from_cache = False
     response = await service.generate_response(result, from_cache=from_cache)
     return response

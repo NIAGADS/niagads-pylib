@@ -27,12 +27,13 @@ class ResponseContent(CaseInsensitiveEnum):
     IDS = auto()
 
 
+# FIXME: test and re-enable these serializers
 class ResponseFormat(CaseInsensitiveEnum):
     """enum for allowable response / output formats"""
 
     JSON = auto()
-    TEXT = auto()
-    XML = auto()
+    # TEXT = auto()
+    # XML = auto()
 
 
 class ResponseUI(CaseInsensitiveEnum):
