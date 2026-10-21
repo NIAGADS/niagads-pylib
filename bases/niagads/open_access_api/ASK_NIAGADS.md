@@ -300,3 +300,19 @@ Internal API deadlines enforce `ASK_API_TIMEOUT`; `ASK_DEADLINE` bounds the run.
    unless explicitly enabled. Telemetry availability cannot block query serving.
 
 Cloud mock tests do not establish live database/provider correctness.
+
+
+## Phenotype annotations for queried genes
+
+For a known gene or named candidate genes, use get_gene_associations and its
+returned trait annotations to map the queried genes to reported phenotypes. Tool
+summaries expose association_traits (context, original term/CURIE and source
+tracks), with association_query containing the original gene/flank scope. Full
+and summary content retain these annotations; API association counts are not
+recomputed. These terms describe the retained rows/pages, not an exhaustive set
+of phenotypes or proof that a gene causes a phenotype. Missing annotations do not
+prove absence of association. Keep disease and population contexts distinct.
+
+The former unconditional find_phenotype_genes unavailable placeholder was removed.
+Without identified candidate genes, clarify scope instead of claiming an
+exhaustive phenotype-first search or treating semantic matches as associations.

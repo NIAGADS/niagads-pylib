@@ -1,6 +1,8 @@
 """Run-local datasets and deterministic summaries for model/component boundaries."""
 
+from niagads.api.common.types import AnnotationKind
 from niagads.common.core import ComponentBaseMixin
+from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.open_access_api.ask.contracts import ResultSet
 from niagads.open_access_api.ask.presentations import (
     TABLE_RULES,
@@ -54,7 +56,7 @@ class ResultStore(ComponentBaseMixin):
                     and len(str(value)) <= 300
                 }
             )
-        return {
+        summary = {
             "result_id": result.id,
             "entity": result.entity.value,
             "annotation": (result.annotation.value if result.annotation else None),
@@ -67,6 +69,32 @@ class ResultStore(ComponentBaseMixin):
             "warnings": result.warnings,
             "presentations": self.capabilities(result_id),
         }
+
+        if result.annotation == AnnotationKind.ASSOCIATIONS:
+            summary["association_query"] = result.parameters
+            summary["association_traits"] = self._association_traits(result)
+        return summary
+
+    def _association_traits(self, result: ResultSet) -> list[dict]:
+        """Deduplicate reported terms with source tracks across this returned page."""
+        annotations: dict[tuple[str, str | None, str], dict] = {}
+        for row in result.rows:
+            for context, terms in (row.get("traits") or {}).items():
+                for value in terms:
+                    term = OntologyTerm.model_validate(value)
+                    key = (context, term.curie, term.term)
+                    if key not in annotations:
+                        annotations[key] = {
+                            "context": context,
+                            "curie": term.curie,
+                            "term": term.term,
+                            "tracks": {},
+                        }
+                    annotations[key]["tracks"][row.get("track")] = None
+        return [
+            {**annotation, "tracks": list(annotation["tracks"])}
+            for annotation in annotations.values()
+        ]
 
     def capabilities(self, result_id: str) -> list[dict]:
         """Advertise compatible translators and their registered field choices."""

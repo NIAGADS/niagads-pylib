@@ -157,3 +157,20 @@ external-dependency warnings); tracked build configuration unchanged. The first
 build attempt failed because Node --input-type propagated to minifier workers;
 rerunning from a temporary script resolved it. No live endpoint/model/database
 requests.
+
+## Correction: gene-to-phenotype mapping
+
+User reported the unconditional unavailable notice despite returned association
+traits supporting phenotype mapping for queried genes. Removed the placeholder
+tool rather than adding a new retrieval endpoint. Added deterministic summaries
+of context/term/CURIE/source tracks over retained association rows and expose the
+original query scope. Both full and API count-summary rows are supported without
+recomputing counts. Agent instructions route known-gene phenotype questions to
+get_gene_associations and preserve page/source/causality limits. Unseeded inverse
+requests require scope clarification; semantic hits are not association evidence.
+
+Added focused cases for terms beyond the scalar preview, context/source dedup,
+missing terms/sources, API summary counts and excluding semantic candidates from
+trait evidence. Tests were not executed. Python syntax/Black/isort, tool-schema generation and
+both repository diff checks passed. Independent targeted static review found no
+high-confidence defects. No live model/database calls.

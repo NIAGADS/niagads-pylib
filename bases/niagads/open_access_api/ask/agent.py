@@ -4,7 +4,6 @@ from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.provider import build_model
 from niagads.open_access_api.ask.tools import (
     find_api_operations,
-    find_phenotype_genes,
     get_gene,
     get_gene_associations,
     get_gene_structure,
@@ -35,6 +34,19 @@ Full rows are server-owned; never reproduce datasets or generate frontend code.
 Do not call an empty result a failed retrieval, or a failed retrieval no matches.
 Failure notices are displayed separately. Do not repeat their full messages in
 answer text or recommend unrelated retries or query changes.
+For phenotypes/diseases associated with a known gene, call get_gene_associations.
+Its association_traits summary exposes reported terms/ontology CURIEs, contexts and
+source tracks across the returned rows, for either full or summary content. Use
+these annotations to map queried genes to reported phenotypes and assess whether
+named candidate genes have returned associations annotated with a requested trait.
+Do not report that phenotype mapping is unavailable when this evidence can be
+retrieved. Preserve trait context: population, ethnicity or other descriptors must
+not be presented as disease annotations. State association_query gene/flank scope,
+result references, sources, page limits and warnings; regional variant associations
+do not establish that the gene causes the phenotype. Missing trait annotations do
+not establish absence of association. Keep ambiguous phenotype selection explicit.
+Without identified candidate genes, clarify which genes/scope to assess rather
+than claiming an exhaustive phenotype-first search or substituting semantic hits.
 Explain unsupported operations honestly. Ranked/page-limited results are not all
 matching records. Curated and +/-10 kb proximity evidence are distinct; proximity
 does not establish causality. Keep both sources per gene. Do not infer a disease
@@ -72,7 +84,6 @@ def build_agent(settings: AskSettings, model=None) -> Agent:
             get_variant_associations,
             get_transcript_associations,
             get_region_associations,
-            find_phenotype_genes,
             find_api_operations,
             present_results,
         ],

@@ -85,7 +85,11 @@ async def get_gene_associations(
         ResponseContent.FULL, ResponseContent.SUMMARY
     ] = ResponseContent.FULL,
 ) -> dict:
-    """Retrieve gene associations; use summary content for counts by track."""
+    """Retrieve gene association evidence, including reported phenotype/trait annotations.
+
+    Both full and summary content expose trait terms and source tracks to the agent.
+    Summary content retains the API's association counts per track.
+    """
     operation = (
         "gene_associations_summary"
         if content == ResponseContent.SUMMARY
@@ -165,23 +169,6 @@ async def get_region_associations(
         else "region_associations"
     )
     return await _execute(ctx, operation, {"region": region})
-
-
-async def find_phenotype_genes(ctx: RunContext[dict], phenotype: str) -> dict:
-    """Report phenotype-to-gene retrieval readiness; never substitute semantic hits."""
-    detail = (
-        "Finding genes associated with a phenotype is not available. "
-        "You can look up a gene or retrieve associations for a known gene instead."
-    )
-    ctx.deps.setdefault("issues", []).append(
-        AskIssue(
-            code="unsupported",
-            operation="find_phenotype_genes",
-            message=detail,
-        )
-    )
-    ctx.deps.setdefault("failures", []).append("unsupported")
-    return {"status": "unsupported", "detail": detail}
 
 
 async def find_api_operations(ctx: RunContext[dict], query: str) -> dict:

@@ -79,6 +79,29 @@ successfully using a temporary compiler compatibility override, with existing
 circular-import/external-dependency warnings. No repository build configuration
 changed. No live model/database calls were made.
 
+### Gene-to-phenotype evidence correction
+
+Removed the unconditional find_phenotype_genes placeholder and its misleading
+unavailable notice. For a known gene or named candidate genes, ASK uses existing
+gene-association retrieval and interprets the returned trait annotations.
+Association tool summaries now expose deduplicated context, original term/CURIE
+and source tracks across all retained rows, not just the five-row scalar preview.
+The gene/flank query, page, has_more and warnings remain available to the agent.
+This also supports inspecting trait annotations from API count-summary rows
+without recalculating their num_associations values.
+
+Population/ethnicity contexts remain distinct from disease/phenotype annotations.
+Missing trait annotations do not prove absence of association; nearby variant
+associations do not establish a causal gene relationship. Without candidate genes,
+ASK clarifies the gene/search scope rather than claiming an exhaustive inverse
+search or substituting semantic similarity as association evidence. No new data
+endpoint, SQL/ORM/ETL, embedding, query-planning or model configuration was added.
+
+Regression cases: test_association_traits.py in the Python ASK test directory.
+Python syntax/style/tool-schema checks and repository diff checks passed;
+independent targeted static review found no high-confidence defects. Tests and
+live model/database requests remain unrun under the existing policy.
+
 ## Merged prototype checkpoint (historical)
 
 Updated: 2026-10-20. This document records the current implementation and user
