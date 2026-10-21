@@ -4,9 +4,9 @@ from niagads.api.common.models.annotations.associations import (
     VariantAssociation,
 )
 from niagads.api.common.models.context.response import ResponseConfiguration
-from niagads.api.common.models.entities.gene.records import Gene
-from niagads.api.common.models.entities.track.records import TrackMetadata
-from niagads.api.common.models.entities.variant.records import Variant
+from niagads.api.common.models.entities.gene.records import GeneBrief
+from niagads.api.common.models.entities.track.records import TrackMetadataBrief
+from niagads.api.common.models.entities.variant.records import VariantBrief
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.models.responses.records import RecordResponse
 from niagads.api.common.types import AnnotationKind, ResponseContent
@@ -49,7 +49,9 @@ OPERATIONS = {
         entity=Entity.GENE,
         annotation=AnnotationKind.REPORT,
         response_config=ResponseConfiguration(
-            response_model=RecordResponse, record_model=Gene
+            content=ResponseContent.SUMMARY,
+            response_model=RecordResponse,
+            record_model=GeneBrief,
         ),
     ),
     "variant": AskOperation(
@@ -57,7 +59,9 @@ OPERATIONS = {
         entity=Entity.VARIANT,
         annotation=AnnotationKind.REPORT,
         response_config=ResponseConfiguration(
-            response_model=RecordResponse, record_model=Variant
+            content=ResponseContent.SUMMARY,
+            response_model=RecordResponse,
+            record_model=VariantBrief,
         ),
     ),
     "track": AskOperation(
@@ -65,7 +69,9 @@ OPERATIONS = {
         entity=Entity.TRACK,
         annotation=AnnotationKind.REPORT,
         response_config=ResponseConfiguration(
-            response_model=RecordResponse, record_model=TrackMetadata
+            content=ResponseContent.SUMMARY,
+            response_model=RecordResponse,
+            record_model=TrackMetadataBrief,
         ),
     ),
     "gene_structure": AskOperation(

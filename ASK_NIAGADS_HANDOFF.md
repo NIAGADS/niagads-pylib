@@ -1,5 +1,15 @@
 # ASK NIAGADS local Codex handoff
 
+## Current task: chat and temporary dashboards
+
+Continue on codex/ask-chat-dashboard-navigation from updated refactor/api. The
+paired frontend branch starts from app/oa-api. Canonical plan/progress:
+developer-notes/plans/ask/chat-dashboard-navigation.md. ASK report tools request
+existing brief/summary models and chat is instructed to stay brief. UI adapters
+remain frontend owned; v4 is unchanged. Frontend ASK_CHAT_DASHBOARD.md describes
+temporary IDs, same-tab navigation, summary Cards and raw downloads. Earlier
+checkpoints below are historical. No synthetic tests or live database/model calls.
+
 ## Current task: query planning integrated with dashboard v4
 
 Work is on codex/ask-structured-query-planning in both repositories. The user

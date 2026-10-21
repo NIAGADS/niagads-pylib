@@ -25,7 +25,7 @@ async def retrieve(
     semantic_search = definition.response_config.record_model is SearchMatch
     params = dict(parameters)
     params["format"] = ResponseFormat.JSON.value
-    if definition.annotation == AnnotationKind.ASSOCIATIONS:
+    if definition.annotation in {AnnotationKind.ASSOCIATIONS, AnnotationKind.REPORT}:
         params["content"] = definition.response_config.content.value
     identifier = definition.entity.value
     try:

@@ -1,5 +1,19 @@
 # ASK NIAGADS prototype
 
+## Brief chat responses and dashboard results
+
+ASK instructions require brief summaries instead of Markdown tables, long record
+lists or API catalogs. The frontend supplies dashboard/download links; the model
+must not invent them or claim presentation succeeded. Follow-ups re-fetch needed
+evidence; browser-held records stay outside trusted model history.
+
+Gene/variant/track tools use existing GeneBrief, VariantBrief and TrackMetadataBrief
+configurations with content=summary. The UI renders single reports as summary
+Cards and provides a fixed full-record API link. Lists/charts live on a temporary
+conversation dashboard. Protocol v4 is unchanged. See the current handoff and
+developer-notes/plans/ask/chat-dashboard-navigation.md. No synthetic tests were
+added; live model behavior remains unvalidated.
+
 ## Structured query interpretation
 
 ASK first calls the configured `ASK_MODEL` with PydanticAI structured output to
