@@ -1,5 +1,37 @@
 # ASK NIAGADS prototype
 
+## Structured query interpretation
+
+ASK first calls the configured `ASK_MODEL` with PydanticAI structured output to
+produce a `QueryPlan`. It preserves intent, entity, positive concepts with nested
+AND/OR groups, raw gene/span/variant `loc`, nullable flank/assembly, clarifications,
+and deferred exclusions. It does not resolve ontology IDs or coordinates, invent
+missing distances, or treat an interpreted concept as retrieved evidence.
+
+The planner and evidence agent reuse the same model and share existing request,
+token and deadline budgets, including retries. Planning adds at least one model
+request to a conversation turn. No new model setting or provider is introduced.
+Invalid planner output or provider failure propagates through existing diagnostics;
+there is no fallback to unplanned retrieval. Existing embedding settings are unchanged.
+
+The UI receives a `data-niagads-plan` part and shows a validated JSON disclosure
+separate from result tables. Browser-supplied plan/tool parts are discarded;
+plans are regenerated from sanitized conversation text on each turn. Clarifications
+pause API retrieval. Exclusions remain explicitly unsupported and also pause
+retrieval rather than silently weaken the request. The `get_track_data` tool is
+a placeholder taking `track_ids`, `loc`, and nullable `flank`; it returns an
+unsupported notice without an HTTP call. This location-aware agent tool is
+distinct from the dashboard manual fetch, which uses the existing parameter-free
+`/record/track/{track_id}/data` route.
+
+Direct `/query/*` endpoints remain semantic-search primitives. This change does
+not implement multi-concept score fusion, AND/OR filtering of retrieved records,
+ontology expansion, cancer exclusions or genomic data endpoints. Semantic search
+hits remain candidates, not proof that every plan requirement was met.
+
+Synthetic planning tests were removed at the user's request. Live interpretation
+quality and model/stream behavior have not been verified by schema generation.
+
 The existing application exposes `POST /ask`. One PydanticAI agent uses fixed API
 GET tools. The API query service generates embeddings through OpenRouter using
 the ETL default model. No SQL, ORM changes, stored-vector regeneration, or database

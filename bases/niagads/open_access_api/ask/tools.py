@@ -14,6 +14,24 @@ from pydantic_ai import ModelRetry, RunContext
 
 async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> dict:
     """Retrieve through the existing API and expose a compact evidence summary."""
+    plan = ctx.deps.get("query_plan")
+    if plan is not None and plan.clarifications:
+        ctx.deps["failures"].append("clarification")
+        return {
+            "status": "clarification",
+            "questions": [item.question for item in plan.clarifications],
+        }
+    if plan is not None and plan.exclusions:
+        detail = "Exclusions are not implemented; the requested exclusions have not been applied."
+        ctx.deps["issues"].append(
+            AskIssue(code="unsupported", operation=operation, message=detail)
+        )
+        ctx.deps["failures"].append("unsupported")
+        return {
+            "status": "unsupported",
+            "exclusions": plan.exclusions,
+            "detail": detail,
+        }
     result = await retrieve(ctx.deps["client"], operation, parameters)
     ctx.deps["store"].add(result)
     return ctx.deps["store"].summary(result.id)
@@ -59,6 +77,25 @@ async def get_variant(ctx: RunContext[dict], variant: str) -> dict:
 async def get_track(ctx: RunContext[dict], track: str) -> dict:
     """Retrieve track metadata by its stable track identifier."""
     return await _execute(ctx, "track", {"track": track})
+
+
+async def get_track_data(
+    ctx: RunContext[dict],
+    track_ids: list[str],
+    loc: str,
+    flank: Annotated[int | None, Field(ge=0)] = None,
+) -> dict:
+    """Declare future gene/span/variant track-data retrieval without an HTTP call."""
+    detail = "Genomic data retrieval for selected tracks is not implemented; track metadata is not genomic feature data."
+    ctx.deps["issues"].append(
+        AskIssue(code="unsupported", operation="get_track_data", message=detail)
+    )
+    ctx.deps["failures"].append("unsupported")
+    return {
+        "status": "unsupported",
+        "detail": detail,
+        "requested": {"track_ids": track_ids, "loc": loc, "flank": flank},
+    }
 
 
 async def get_gene_structure(ctx: RunContext[dict], gene: str) -> dict:

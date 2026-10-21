@@ -1,5 +1,35 @@
 # ASK NIAGADS local Codex handoff
 
+## Current task: query planning integrated with dashboard v4
+
+Work is on codex/ask-structured-query-planning in both repositories. The user
+merged and deleted the dashboard branches. Updated development bases are merged
+here: Python refactor/api at dc5c41eb and frontend app/oa-api at c608799b.
+Do not resume from the historical dashboard branches mentioned below.
+
+The ASK planner still runs before tool selection, using ASK_MODEL and shared
+request/token/deadline budgets. Its validated data-niagads-plan stream is separate
+from authoritative data-niagads-result v4. The UI retains the plan disclosure,
+dashboard tables/bars, track-selection action, source/page metadata and native
+diagnostics. Python exports domain and planning enums, never UI adapter rules.
+Explicit table/plot preferences remain presentation intent; frontend adapters own
+rendering and eligibility. Clarifications and deferred exclusions pause retrieval.
+Direct /query endpoints and semantic retrieval behavior remain unchanged.
+
+The planner's get_track_data remains a location-aware placeholder; the dashboard's
+manual selected-track fetch uses the existing parameter-free track-data route.
+These are distinct flows. Wiring genomic location-aware agent retrieval is a
+follow-up, not part of this merge.
+
+Synthetic planning tests were also removed to carry forward the user's rejection
+of toy-data validation. Existing dashboard test removals are preserved. Real API,
+OpenRouter and browser behavior remain unvalidated; no tests/live calls were run.
+Merge checks passed: Python parse/import/schema/Black/isort, frontend TypeScript
+and targeted ESLint, and focused diff whitespace checks. See the Python ledger
+at developer-notes/plans/ask/structured-query-planning.md.
+
+## Previous dashboard checkpoint (historical)
+
 ## Validation correction: synthetic tests removed
 
 At the user's request, synthetic-record ASK dashboard, presentation-intent,

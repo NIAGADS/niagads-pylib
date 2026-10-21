@@ -7,6 +7,13 @@ from pathlib import Path
 from niagads.api.common.types import AnnotationKind, ResponseContent
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import Entity
+from niagads.genome_reference.human import GenomeBuild
+from niagads.open_access_api.ask.planning import (
+    BooleanOperator,
+    ConceptCategory,
+    LocationKind,
+    QueryIntent,
+)
 
 
 class AskTypeExporter(ComponentBaseMixin):
@@ -20,6 +27,15 @@ class AskTypeExporter(ComponentBaseMixin):
         """
         constants = {
             "Entity": {member.name: member.value for member in Entity},
+            "QueryIntent": {member.name: member.value for member in QueryIntent},
+            "ConceptCategory": {
+                member.name: member.value for member in ConceptCategory
+            },
+            "BooleanOperator": {
+                member.name: member.value for member in BooleanOperator
+            },
+            "LocationKind": {member.name: member.value for member in LocationKind},
+            "GenomeBuild": {member.name: member.value for member in GenomeBuild},
             "AnnotationKind": {member.name: member.value for member in AnnotationKind},
             "ResponseContent": {
                 member.name: member.value for member in ResponseContent

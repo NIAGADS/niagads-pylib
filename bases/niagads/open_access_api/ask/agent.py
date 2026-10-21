@@ -1,6 +1,7 @@
 """One constrained agent; providers, tools, contracts, and transport stay separate."""
 
 from niagads.open_access_api.ask.config import AskSettings
+from niagads.open_access_api.ask.planning import query_plan_instructions
 from niagads.open_access_api.ask.provider import build_model
 from niagads.open_access_api.ask.tools import (
     find_api_operations,
@@ -9,6 +10,7 @@ from niagads.open_access_api.ask.tools import (
     get_gene_structure,
     get_region_associations,
     get_track,
+    get_track_data,
     get_transcript_associations,
     get_variant,
     get_variant_associations,
@@ -74,7 +76,7 @@ def build_agent(settings: AskSettings, model=None) -> Agent:
     return Agent(
         model,
         deps_type=dict,
-        instructions=INSTRUCTIONS,
+        instructions=[INSTRUCTIONS, query_plan_instructions],
         retries=1,
         model_settings={"max_tokens": 2000, "parallel_tool_calls": False},
         tools=[
@@ -82,6 +84,7 @@ def build_agent(settings: AskSettings, model=None) -> Agent:
             get_gene,
             get_variant,
             get_track,
+            get_track_data,
             get_gene_structure,
             get_gene_associations,
             get_variant_associations,
