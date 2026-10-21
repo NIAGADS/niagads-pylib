@@ -10,7 +10,7 @@ from niagads.common.types import Entity
 def test_query_embeddings(client, entity):
     response = client.get(
         f"/query/{entity.value}s",
-        params={"query": "Alzheimer disease", "limit": 5},
+        params={"text": "Alzheimer disease", "limit": 5},
     )
 
     assert response.status_code == 200, response.text

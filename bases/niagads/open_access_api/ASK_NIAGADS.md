@@ -114,7 +114,9 @@ entrypoint and point the frontend's `ASK_API_URL` at that running application.
 - Gene/track semantic query endpoints now generate query embeddings through
   OpenRouter before invoking their existing retrieval methods. The agent sends
   search text and never receives or generates the vector. Variant semantic search
-  remains planned.
+  remains planned. The parameter is `text`, for example
+  `/query/tracks?text=Alzheimer+disease`; the ASK `search_resources` tool also
+  accepts `text`.
 - The embedding adapter sends `OPENROUTER_EMBEDDING_MODEL` directly to OpenRouter.
   The setting defaults to and currently permits only
   `liquid/lfm-2.5-embedding-350m:free`, the user-supplied ID for the ETL model.

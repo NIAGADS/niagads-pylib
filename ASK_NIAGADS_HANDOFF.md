@@ -76,6 +76,10 @@ No further specification approval is pending for the implemented prototype.
 
 ## Operation, entity, and serialized-record logic
 
+- Natural-language routes retain `/query` and take the parameter `text`, for
+  example `/query/tracks?text=Alzheimer+disease`. The ASK `search_resources` tool
+  and query service use `text` as well. `/search` remains the intended namespace
+  for structured/exact retrieval; no new `/search` route was added by this rename.
 - `ask/operations.py` owns the static `OPERATIONS` registry. `AskOperation`
   specifies endpoint, `Entity`, nullable `AnnotationKind`, and the existing
   `ResponseConfiguration` containing record/response models and content.

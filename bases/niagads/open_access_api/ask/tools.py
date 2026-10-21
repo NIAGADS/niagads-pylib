@@ -21,7 +21,7 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
 
 async def search_resources(
     ctx: RunContext[dict],
-    query: str,
+    text: str,
     entity: Entity,
     limit: Annotated[int, Field(ge=1, le=50)] = 10,
 ) -> dict:
@@ -43,7 +43,7 @@ async def search_resources(
         )
         ctx.deps.setdefault("failures", []).append("unsupported")
         return {"status": "unsupported", "detail": detail}
-    return await _execute(ctx, operation, {"query": query, "limit": limit})
+    return await _execute(ctx, operation, {"text": text, "limit": limit})
 
 
 async def get_gene(ctx: RunContext[dict], gene: str) -> dict:

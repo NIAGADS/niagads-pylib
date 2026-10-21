@@ -14,7 +14,7 @@ router = APIRouter(prefix="/query", tags=["Query"])
 
 
 async def query_service(
-    query: str = Query(description="Natural-language query to search for."),
+    text: str = Query(description="Natural-language text to search for."),
     limit: int = Query(
         default=10,
         gt=0,
@@ -26,7 +26,7 @@ async def query_service(
     """Configure the query service with request parameters and response models.
 
     Args:
-        query (str): Natural-language search text.
+        text (str): Natural-language search text.
         limit (int): Maximum matches per entity type.
         page (int): One-based response page.
         context (OpenAccessEndpointContext): Request-scoped dependencies.
@@ -36,7 +36,7 @@ async def query_service(
     """
     return QueryEndpointService(
         context=context,
-        parameters=Parameters(query=query, limit=limit, page=page),
+        parameters=Parameters(text=text, limit=limit, page=page),
         response_config=ResponseConfiguration(
             response_model=RecordResponse,
             record_model=SearchMatch,

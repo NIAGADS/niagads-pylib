@@ -27,13 +27,13 @@ class QueryEndpointService(BaseEndpointService):
         # Variant, and other searchable entities are added.
         orm_models = {Entity.TRACK: Track, Entity.GENE: Gene}
         models = orm_models.values() if entity is None else (orm_models[entity],)
-        embedding = await OpenRouterQueryEmbedding().generate(self._parameters.query)
+        embedding = await OpenRouterQueryEmbedding().generate(self._parameters.text)
         matches = []
         for orm_model in models:
             matches.extend(
                 await orm_model.semantic_search_by_embedding(
                     self._context.database_session,
-                    self._parameters.query,
+                    self._parameters.text,
                     embedding,
                     limit=self._parameters.limit,
                 )
