@@ -1,9 +1,12 @@
 """Run-local datasets and deterministic summaries for model/component boundaries."""
 
+from collections.abc import Sequence
+
 from niagads.api.common.types import AnnotationKind
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.open_access_api.ask.contracts import PresentationIntent, ResultSet
+from niagads.open_access_api.ask.planning import GeneEvidence
 
 
 class ResultStore(ComponentBaseMixin):
@@ -27,7 +30,13 @@ class ResultStore(ComponentBaseMixin):
             raise RuntimeError("Unknown result reference")
         return self.results[result_id]
 
-    def summary(self, result_id: str) -> dict:
+    def summary(
+        self,
+        result_id: str,
+        *,
+        gene_evidence: Sequence[GeneEvidence | str] = (),
+        transcript: str | None = None,
+    ) -> dict:
         """Expose identifiers and a small record preview to the agent."""
         result = self.get(result_id)
         preview = []
@@ -39,6 +48,11 @@ class ResultStore(ComponentBaseMixin):
                     if key
                     in {
                         "id",
+                        "gene_symbol",
+                        "gene_name",
+                        "gene_type",
+                        "location",
+                        "associated_with_known_ad_locus",
                         "name",
                         "label",
                         "variant",
@@ -58,11 +72,84 @@ class ResultStore(ComponentBaseMixin):
             "content": result.content.value,
             "page": result.page,
             "has_more": result.has_more,
-            "sources": result.sources[:20],
+            "sources": result.sources,
+            "parameters": result.parameters,
+            "limit": result.limit,
             "preview": preview,
             "warnings": result.warnings,
             "fields": list(dict.fromkeys(key for row in result.rows for key in row)),
         }
+
+        requested = {GeneEvidence(field).value for field in gene_evidence}
+        if requested:
+            summary["evidence_fields"] = sorted(requested)
+        if result.entity.value == "gene" and result.annotation == AnnotationKind.REPORT:
+            annotation_fields = {
+                "functional_annotation",
+                "memberships",
+                "xrefs",
+                "publications",
+            }
+            selected_fields = requested & annotation_fields
+            summary["omitted_fields"] = sorted(
+                {
+                    field
+                    for row in result.rows
+                    for field in row
+                    if field in annotation_fields | {"gene_structure"}
+                }
+                - selected_fields
+            )
+            if selected_fields:
+                summary["gene_annotations"] = [
+                    {
+                        "id": row.get("id"),
+                        **{
+                            field: row[field]
+                            for field in sorted(selected_fields)
+                            if field in row
+                        },
+                        "unavailable_fields": sorted(selected_fields - row.keys()),
+                    }
+                    for row in result.rows
+                ]
+        if (
+            result.entity.value == "gene"
+            and result.annotation == AnnotationKind.STRUCTURE
+        ):
+            transcripts = [
+                item for row in result.rows for item in row.get("transcripts", [])
+            ]
+            summary["transcript_count"] = len(transcripts)
+            summary["omitted_fields"] = ["proteins"]
+            if requested & {"transcripts", "exons"}:
+                selected = transcripts
+                if transcript is not None:
+                    summary["requested_transcript"] = transcript
+                    selected = [
+                        item
+                        for item in transcripts
+                        if transcript in (item.get("id"), item.get("name"))
+                    ]
+                    if not selected:
+                        summary["warnings"] = [
+                            *result.warnings,
+                            "Requested transcript was not found in the retrieved structure.",
+                        ]
+                fields = (
+                    ("id", "name", "location", "exons")
+                    if "exons" in requested
+                    else ("id", "name", "location")
+                )
+                summary["transcripts"] = [
+                    {key: item[key] for key in fields if key in item}
+                    for item in selected[:20]
+                ]
+                summary["transcripts_truncated"] = len(selected) > 20
+                if "exons" not in requested:
+                    summary["omitted_fields"].append("exons")
+            else:
+                summary["omitted_fields"].append("transcripts")
 
         if result.annotation == AnnotationKind.ASSOCIATIONS:
             summary["association_query"] = result.parameters

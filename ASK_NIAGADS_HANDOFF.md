@@ -1,5 +1,64 @@
 # ASK NIAGADS local Codex handoff
 
+## Current branch — 2026-10-21
+
+The user requested moving this work to feature branches. Continue on
+`codex/ask-context-recovery-retries`, created from `refactor/api` in this repo.
+The same feature branch name is used in both repositories. All pending
+context compaction, token recovery and OpenRouter retry changes were
+preserved. The user subsequently authorized committing and pushing both
+feature branches. Earlier notes describing uncommitted work are historical.
+This supersedes instructions to work on development bases, avoid new
+branches, or leave this work uncommitted.
+
+## OpenRouter retries and progress — 2026-10-21
+
+Configured ASK_MODEL now uses the shared bounded retry helper for planning and
+stream opening: four retries on 429/5xx only, 5/15/30/60 seconds plus jitter,
+Retry-After precedence, native final errors preserved. Request-local transient
+status events drive the frontend countdown/Retry UI; null clears on response.
+The user approved pausing the existing active deadline during waits. The proxy's
+fixed streaming timeout is removed; Stop still cancels. Partial delivered streams
+are not replayed. No dependencies, embeddings or semantic retrieval changes.
+
+45 focused backend checks and eight client regressions pass; types/lint/format
+checks pass. Browser verification remains pending because the existing dev server
+was unresponsive and prevented a second server. No live provider/database calls.
+Read CHECKPOINT.md and the API guide's retry section for implementation details.
+Changes remain uncommitted on the current development bases.
+
+## Token-limit recovery — 2026-10-21
+
+Approved follow-up adds status=token_limit and usage_limit diagnostics to the paired
+v4 contracts. Planning/mid-stream token exhaustion preserves retrieved records and
+presentation references, emits a brief deterministic summary/follow-up suggestion,
+and closes normally with finishReason=length. No extra model call or higher budget.
+The UI marks results incomplete and collapses native error details; existing default
+dashboard adapters and downloads work even without an agent presentation.
+
+See CHECKPOINT.md for focused recorded-data/protocol tests and remaining local
+validation. Deploy both repos together. Other limit/provider errors keep their
+existing error flow. Work remains uncommitted on the current development bases.
+
+## Working context implementation — 2026-10-21
+
+The approved revision is implemented and left uncommitted on refactor/api, paired
+with the GeneEvidence planner schema on frontend app/oa-api. Read CHECKPOINT.md
+and developer-notes/plans/ask/compact-working-context-review.md first. They
+supersede the old boolean structure-toggle plan and paused-task instructions.
+
+Run-local ProcessHistory compaction preserves authoritative evidence, complete
+records, page/scope metadata, unresolved/retry exchanges and native diagnostics.
+Gene lookups remain brief by default; explicitly needed full annotations and
+selective transcript/exon summaries are available. Existing budgets and cross-turn
+re-fetch behavior remain. This does not add cumulative evidence across requests.
+
+Sixteen recorded-data/protocol/SDK-streaming checks pass without database/model
+access. Client type checking and targeted lint pass. Local real API/OpenRouter
+usage and grounding validation remains; source changes are not a deployed backend.
+
+Earlier sections below are historical unless they describe unchanged behavior.
+
 ## Error reporting guidance — 2026-10-21
 
 Frontend-only changes in niagads-viz-monorepo: ASK Chat now links help@niagads.org
@@ -28,18 +87,6 @@ existing brief/summary models and chat is instructed to stay brief. UI adapters
 remain frontend owned; v4 is unchanged. Frontend ASK_CHAT_DASHBOARD.md describes
 temporary IDs, same-tab navigation, summary Cards and raw downloads. Earlier
 checkpoints below are historical. No synthetic tests or live database/model calls.
-## Paused task: compact working context — 2026-10-21
-
-User requested a break. Resume from CHECKPOINT.md and
-developer-notes/plans/ask/compact-working-context.md in the original refactor/api
-checkout. The user approved evidence-rich summaries and deterministic compaction
-of completed tool exchanges, preserving server-owned records and grounding.
-Only the plan and three real-record regression cases have been added; production
-code is unchanged. The targeted test run produced three expected RED failures
-for the not-yet-implemented include_structure summary argument. Focused tests and
-one live diagnostic are authorized. The backend at localhost:8000 is Dockerized
-without hot reload; do not claim local edits are active there. No rebuild or
-deployment has occurred. No subagents or new branches/worktrees are authorized.
 
 ## Current task: query planning integrated with dashboard v4
 

@@ -80,7 +80,7 @@ Configure server process variables (secret values belong in secure settings):
 | ASK_MODEL_REQUESTS | 8 per query, maximum 12 |
 | ASK_TOOL_CALLS | 12 per query, maximum 20 |
 | ASK_API_TIMEOUT | 20 seconds per API tool, maximum 30 |
-| ASK_DEADLINE | 90 seconds for the whole query, maximum 120 |
+| ASK_DEADLINE | 90 seconds of active work per query, maximum 120; announced provider backoff waits are excluded |
 | ASK_TELEMETRY | false; enables optional Logfire instrumentation |
 | LOGFIRE_TOKEN | Logfire project write token; required for direct API telemetry and answer feedback; supply through the API runtime environment |
 | ASK_CAPTURE_CONTENT | false; explicitly opt in to model/prompt/tool content capture |
@@ -277,17 +277,44 @@ ASK handles failures at two boundaries:
 - Before streaming, setup failures raise `RuntimeError` with the original cause.
   The existing FastAPI runtime handler returns the diagnostic detail, traceback,
   and issue-reporting instructions. Invalid conversation input uses HTTP 422/413.
-- After streaming starts, the SDK emits an error event containing the exception
+- For unrecovered failures after streaming starts, the SDK emits an error event containing the exception
   message and request reference. Server logs retain the chained traceback.
   Retrieved evidence is sent before the error event when available.
 
 API retrieval requests JSON. HTTP 404 is a no-match result; other failures raise
 `RuntimeError` with the API's response details. Unsupported capabilities remain
-ordinary tool notices in the result envelope's `issues` list. There is no custom
-exception classifier, exception wrapper, or request-local exception capture.
+ordinary tool notices in the result envelope's `issues` list. Native errors remain
+intact; targeted token-limit recovery and provider retries are described below.
 The frontend forwards API error responses and displays streamed error messages.
 Logfire remains optional and retains exception messages and tracebacks.
-Internal API deadlines enforce `ASK_API_TIMEOUT`; `ASK_DEADLINE` bounds the run.
+Internal API deadlines enforce `ASK_API_TIMEOUT`; `ASK_DEADLINE` bounds active
+work in the run. Provider backoff waits pause that deadline.
+
+## OpenRouter retry progress
+
+The configured ASK_MODEL is unchanged. One shared helper wraps planner requests
+and the opening of evidence streams. It retries only HTTP 429/500–599 or those
+codes in native OpenRouter error envelopes, including HTTP 200 JSON/SSE errors.
+It makes at most five attempts, waiting 5/15/30/60 seconds plus 0–1 second jitter.
+A valid Retry-After (seconds or HTTP date) replaces that delay. SDK implicit retries
+are disabled. Each retry logs attempt/status/wait; exhaustion re-raises the native
+final error. Streams already delivered to the caller are never replayed.
+
+Request-local transient data-niagads-model-status events report requesting,
+waiting, retrying and failed, with attempt and waitSeconds. Explicit null clears
+progress when a response arrives. These events are not evidence or chat history.
+The UI reuses LoadingSpinner with a live countdown and shows the friendly busy
+notice/Retry button on exhausted retries, retaining expandable native diagnostics.
+Manual Retry resubmits the last question, preserving prior chat/dashboard results.
+
+Backoff excludes sleep time from the existing active-work deadline, as approved.
+Stop/disconnect cancels the pending request/wait. The proxy retains a 100-second
+connection/header timeout, then relies on the backend's active-work deadline and
+client cancellation. Its former 100-second body timeout/120-second duration hint
+would prevent the requested schedule and are removed. SSE heartbeats keep the
+waiting stream active; deployment/reverse-proxy limits must also permit these
+longer streams. No dependencies, embeddings, semantic retrieval or model routing
+settings change.
 
 ## Local handoff checks
 
