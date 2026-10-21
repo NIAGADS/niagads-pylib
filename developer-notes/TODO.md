@@ -5,6 +5,10 @@
 
 ## API
 
+* Add explicit types for nested dictionaries in API responses, including
+  `memberships` and `functional_annotation`, so generated OpenAPI documentation
+  describes their structure instead of showing `{"additionalProperty": "anything"}`.
+
 ### other
 
 * revisit GenomicRegion -> zero vs one-based for variants

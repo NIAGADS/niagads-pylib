@@ -87,7 +87,12 @@ def get_api_transport(request: Request) -> httpx.AsyncBaseTransport:
     return httpx.ASGITransport(app=request.app)
 
 
-@router.post("/ask", summary="Ask NIAGADS (prototype)", operation_id="askNiagads")
+@router.post(
+    "/ask",
+    summary="Ask NIAGADS",
+    operation_id="askNiagads",
+    openapi_extra={"x-status": "alpha"},
+)
 async def ask(
     request: Request,
     agent=Depends(get_agent),

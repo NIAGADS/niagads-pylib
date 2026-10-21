@@ -47,7 +47,7 @@ async def query_region(
     "/associations",
     summary="Get region associations",
     description=(
-        "Retrieve associations in a one-based inclusive region. Prototype contract; "
+        "Retrieve associations in a one-based inclusive region. "
         "ORM retrieval integration is pending. Valid requests currently return 501."
     ),
     response_description="Regional association records or per-track summaries.",

@@ -31,7 +31,7 @@ metadata = AppMetadata(
         "NIAGADS Open Access API for Alzheimer's disease and related dementias "
         "genomic data and annotations."
     ),
-    servers=[{"url": "https://api.niagads.org", "description": "Production server"}],
+    # servers=[{"url": "https://api.niagads.org", "description": "Production server"}],
 )
 
 

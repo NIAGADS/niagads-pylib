@@ -12,4 +12,4 @@ class AppMetadata(BaseModel):
     title: str
     description: str
     summary: str
-    servers: list[AppServer]
+    # servers: list[AppServer]

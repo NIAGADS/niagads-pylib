@@ -12,10 +12,13 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     FieldSerializationInfo,
+    GetJsonSchemaHandler,
     SerializerFunctionWrapHandler,
     field_serializer,
     model_serializer,
 )
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import CoreSchema
 
 
 class SerializationOptions(CaseInsensitiveEnum):
@@ -51,6 +54,25 @@ class CustomBaseModel(BaseModel):
     """
 
     model_config = ConfigDict(serialize_by_alias=True, populate_by_name=True)
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        """Mark only the base model as internal in generated documentation.
+
+        Args:
+            core_schema (CoreSchema): Pydantic schema for the current model.
+            handler (GetJsonSchemaHandler): JSON schema generation handler.
+
+        Returns:
+            JsonSchemaValue: Model schema with base-only visibility metadata.
+        """
+        schema = handler(core_schema)
+        if cls is CustomBaseModel:
+            schema = handler.resolve_ref_schema(schema)
+            schema["x-internal"] = True
+        return schema
 
     @field_serializer("*")
     def serialize_types(self, v, _info: FieldSerializationInfo):
