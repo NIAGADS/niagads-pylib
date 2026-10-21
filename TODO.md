@@ -1,5 +1,9 @@
 # TODOs
 
+## Open Access API SDK
+
+* generate python and typescript SDKS [design prompt](developer-notes/plans/api-refactor_plan/sdk-prompt.md)
+
 ## ASK NIAGADS alpha
 
 * Identify the best matching source phrase within a semantically matched document
