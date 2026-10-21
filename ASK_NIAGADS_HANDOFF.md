@@ -1,5 +1,50 @@
 # ASK NIAGADS local Codex handoff
 
+## Active task: structured query planning
+
+The old codex/cloud-environment-setup branches were merged into their development
+bases. Current work is on **codex/ask-structured-query-planning** in both repos,
+created from Python **refactor/api at 221082c4** and frontend **app/oa-api at
+c3962e5f**. The older branch/commit table below describes the merged prototype.
+Keep working from the new scoped branches, never main.
+
+The user requested implementation after brainstorming these examples: histone
+modifications in brain cells near APOE, histone modifications in a span, Roadmap
+enhancers near TREM2, and GWAS with Korean/PSP participants. The first three ask
+for genomic data, not only matching track metadata. Exclusions are deferred.
+
+Implemented in ask/planning.py: typed QueryPlan output using the configured
+ASK_MODEL, with intent, entity, positive concepts and nested AND/OR groups,
+nullable loc/flank/assembly, clarifications and exclusions. The planner and agent
+share model/request/token/deadline budgets. Planning adds a model request before
+tool selection. No model settings or embedding behavior were changed.
+
+ASK streams data-niagads-plan separately from the existing version-2 evidence
+envelope. The UI validates it and offers a JSON disclosure labelled interpretation,
+not evidence. Sanitized text-only history is replanned each turn. Listed
+clarifications and deferred exclusions pause API retrieval. The get_track_data
+placeholder records requested track_ids/loc/flank and reports unsupported without
+an HTTP call. Existing error diagnostics and operation metadata are preserved.
+
+Scope boundary: direct /query endpoints remain semantic primitives; the user was
+offered planning there as an alternative. No combined semantic ranking, Boolean
+record filtering, ontology retrieval, exclusions, SQL/ORM/ETL changes or genomic
+data endpoints were implemented. The next retrieval stage still needs its own
+design: separate candidate searches alone do not prove all constraints were met.
+
+Checks: Python schema generation, syntax, Black/isort, full client TypeScript and
+targeted ESLint passed. Test cases were added but NOT executed per AGENTS.md.
+No live OpenRouter or database calls were made. Live interpretation quality,
+structured-output support and stream behavior remain unverified. The final review
+was an inline self-review under the no-subagents rule; no independent review ran.
+
+Current plan and progress: developer-notes/plans/ask/structured-query-planning.md.
+Focused cases: test/bases/niagads/open_access_api/ask/test_planning.py and the
+frontend tests/ask-planning.test.ts. Run only on explicit request. Do not restore
+deleted tests or the discarded error-classification/model-alias machinery.
+
+## Merged prototype checkpoint (historical)
+
 Updated: 2026-10-20. This document records the current implementation and user
 decisions. Use it with each repository's AGENTS.md and the linked run guides.
 Earlier design documents contain superseded scope decisions; this handoff and
@@ -242,12 +287,12 @@ For local continuation:
 - [Validation/defaults review](developer-notes/plans/ask/validation-and-defaults-review.md)
 - [Operation registry](bases/niagads/open_access_api/ask/operations.py)
 - [Deferred work](TODO.md)
-- [Frontend guide on the task branch](https://github.com/NIAGADS/niagads-viz-monorepo/blob/codex/cloud-environment-setup/apps/open-access-api-client/README.md)
+- [Frontend guide on the task branch](https://github.com/NIAGADS/niagads-viz-monorepo/blob/codex/ask-structured-query-planning/apps/open-access-api-client/README.md)
 
 Suggested prompt for the next local Codex session:
 
 > Continue ASK NIAGADS from ASK_NIAGADS_HANDOFF.md in both repositories. Read
-> AGENTS.md and the run guides first. Use the existing codex/cloud-environment-setup
+> AGENTS.md and the run guides first. Use the existing codex/ask-structured-query-planning
 > branches, preserve local changes and the agreed model settings, and help me
 > review the current prototype. Keep pre-stream RuntimeErrors separate from SDK
 > stream errors, preserve diagnostics and Logfire, and do not restore custom
