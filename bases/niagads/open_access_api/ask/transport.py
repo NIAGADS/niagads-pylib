@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
-from niagads.open_access_api.ask.contracts import AskResponse, Presentation
+from niagads.open_access_api.ask.contracts import AskResponse
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
@@ -134,10 +134,6 @@ async def ask(
         nonlocal result_sent
         if result_sent:
             return
-        presentations = store.presentations or [
-            Presentation(component="table", result_id=r.id)
-            for r in list(store.results.values())[:6]
-        ]
         status = (
             "retrieval_error"
             if failed
@@ -154,7 +150,7 @@ async def ask(
         envelope = AskResponse(
             status=status,
             results=list(store.results.values()),
-            presentation=presentations,
+            presentation=store.presentations,
             warnings=list(dict.fromkeys(deps["warnings"])),
             issues=list(
                 {issue.model_dump_json(): issue for issue in deps["issues"]}.values()

@@ -150,3 +150,9 @@ has_component 162250 has component http://purl.obolibrary.org/obo/RO_0002180 OBJ
 
 * settings/configuration for `_api` bases; see <https://docs.pydantic.dev/latest/concepts/pydantic_settings/#usage>
 * microservices w/FastAPI - <https://dev.to/paurakhsharma/microservice-in-python-using-fastapi-24cc#using-nginx>
+
+## ASK dashboard follow-up
+
+- Repair table histogram filters separately; numeric and p-value filtering is disabled in ASK dashboard translators for now.
+- Adapt regional Manhattan for association position versus -log10(p), with disease/population grouping; preserve distinctions between p-values and other significance measures.
+- Consider shared parent state for bidirectional filtering between tables and other dashboard panels after the independent-panel first pass.
