@@ -3,6 +3,7 @@ from typing import Union
 
 from fastapi import HTTPException
 from niagads.api.common.models.annotations.associations import VariantAssociation
+from niagads.api.common.models.entities.gene.records import Gene
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.services.base import BaseEndpointService
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
@@ -61,6 +62,23 @@ class GeneEndpointService(BaseEndpointService):
         # get_record_mappings handles building the 'records', so can just return
         # the mapped records
         return mappings[gene_id]
+
+    async def get_feature_location(
+        self, id: str, flank: int = 0
+    ) -> OneBasedGenomicRegion:
+        mappings = await self.get_record_mappings([id])
+
+        if not mappings[id]:
+            raise HTTPException(status_code=404, detail=f"Gene `{id}` not found")
+        mapped_feature = mappings[id]
+
+        feature_location = OneBasedGenomicRegion.from_database_range(
+            chrosomome=mapped_feature["chromosome"], span=mapped_feature["span"]
+        )
+        if flank:
+            feature_location.start -= flank
+            feature_location.end -= flank
+        return feature_location
 
     async def fetch_gene_structure(self, gene_id: str) -> list[DynamicRecord]:
         """Retrieve gene structure using a case-insensitive identifier lookup.

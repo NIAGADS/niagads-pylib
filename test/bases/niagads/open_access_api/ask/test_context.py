@@ -441,9 +441,11 @@ def test_sdk_streaming_preserves_real_records_and_presentation_after_compaction(
         assert parameters == {"gene": "APOE"}
         return gene_result
 
+    # Repeated completed exchanges exercise compaction's size guard; replacing
+    # one larger curated-evidence summary need not reduce serialized context.
     async def protocol_stream(messages, info):
         seen.append(deepcopy(messages))
-        if len(seen) == 1:
+        if len(seen) in {1, 2}:
             yield DeltaThinkingPart(
                 content="Protocol bookkeeping, not biological interpretation. " * 60
             )
@@ -451,10 +453,10 @@ def test_sdk_streaming_preserves_real_records_and_presentation_after_compaction(
                 0: DeltaToolCall(
                     name="get_gene",
                     json_args=json.dumps({"gene": "APOE", "content": "full"}),
-                    tool_call_id="sdk-retrieval",
+                    tool_call_id=f"sdk-retrieval-{len(seen)}",
                 )
             }
-        elif len(seen) == 2:
+        elif len(seen) == 3:
             yield {
                 0: DeltaToolCall(
                     name="present_results",
@@ -515,13 +517,15 @@ def test_sdk_streaming_preserves_real_records_and_presentation_after_compaction(
         if line.startswith("data: {")
     ]
     assert not [event for event in events if event["type"] == "error"], response
-    assert len(seen) == 3
-    assert any(after < before and snapshot for before, after, snapshot in metrics)
+    assert len(seen) == 4
+    assert any(
+        after < before and snapshot for before, after, snapshot in metrics
+    ), metrics
     # SDK normalization merges consecutive requests; server ownership metadata
     # stays internal, while the snapshot body is delivered to the model.
     snapshots = [
         json.loads(part.content)
-        for message in seen[1]
+        for message in seen[2]
         if isinstance(message, ModelRequest)
         for part in message.parts
         if isinstance(part, UserPromptPart)

@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from niagads.api.common.types import AnnotationKind
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.types import Entity
 from niagads.open_access_api.ask.contracts import PresentationIntent, ResultSet
 from niagads.open_access_api.ask.planning import GeneEvidence
 
@@ -59,6 +60,7 @@ class ResultStore(ComponentBaseMixin):
                         "track",
                         "description",
                         "num_associations",
+                        "is_adsp_variant",
                     }
                     and isinstance(value, (str, int, float, bool))
                     and len(str(value)) <= 300
@@ -151,6 +153,22 @@ class ResultStore(ComponentBaseMixin):
             else:
                 summary["omitted_fields"].append("transcripts")
 
+        if result.entity == Entity.GENE and result.annotation == AnnotationKind.REPORT:
+            summary["gene_evidence"] = [
+                {
+                    **{
+                        key: row[key]
+                        for key in ("id", "associated_with_known_ad_locus")
+                        if key in row
+                    },
+                    **{
+                        key: value
+                        for key, value in (row.get("memberships") or {}).items()
+                        if key == "curated_lists"
+                    },
+                }
+                for row in result.rows
+            ]
         if result.annotation == AnnotationKind.ASSOCIATIONS:
             summary["association_query"] = result.parameters
             summary["association_traits"] = self._association_traits(result)

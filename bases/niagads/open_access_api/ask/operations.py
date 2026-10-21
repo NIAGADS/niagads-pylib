@@ -59,7 +59,9 @@ OPERATIONS = {
         entity=Entity.GENE,
         annotation=AnnotationKind.REPORT,
         response_config=ResponseConfiguration(
-            response_model=RecordResponse, record_model=Gene
+            content=ResponseContent.FULL,
+            response_model=RecordResponse,
+            record_model=Gene,
         ),
     ),
     "variant": AskOperation(

@@ -1,5 +1,29 @@
 # ASK working context — implementation ready for local review, 2026-10-21
 
+## Latest backend base merge — 2026-10-21
+
+Merged origin/refactor/api at 2497a296 into codex/ask-context-recovery-retries.
+Resolved conflicts in handoff, agent instructions, operations, result summaries
+and tools. Preserve base complete-page retrieval, region service, curated evidence,
+lookup fallback only on no matches and independent retrieval despite unrelated
+clarifications. Preserve selective evidence, compaction, token recovery and retries.
+Restored plan lookup in _execute and AskIssue import after automatic merge removed
+code needed by this branch. No hand-written changes to SQL/ORM/ETL or embeddings.
+
+The streaming compaction regression now exercises repeated completed exchanges:
+with larger curated summaries, replacing one exchange need not save space. The
+production size guard was preserved. No evidence was dropped to force compaction.
+56 focused context/limit/retry/tool checks passed, using the recorded gene fixture
+through an isolated pytest plugin so API-app/database startup is excluded. Four
+SDK legacy-httpx deprecation warnings remain. Formatting and whitespace checks
+pass. No database or live model calls; live service checks remain deferred.
+
+Frontend was not changed. Its base includes the corresponding complete-page
+contract updates; merge that base into its feature branch before validating large
+backend pages with this feature. Latest retry UI uses loading/countdown during
+backoff, then a brief OpenRouter Alert without retry diagnostics.
+
+
 ## Current branch — 2026-10-21
 
 The user requested moving this work to feature branches. Continue on

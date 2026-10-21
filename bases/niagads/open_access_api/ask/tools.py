@@ -21,23 +21,6 @@ async def _execute(
 ) -> dict:
     """Retrieve through the existing API and expose a compact evidence summary."""
     plan = ctx.deps.get("query_plan")
-    if plan is not None and plan.clarifications:
-        ctx.deps["failures"].append("clarification")
-        return {
-            "status": "clarification",
-            "questions": [item.question for item in plan.clarifications],
-        }
-    if plan is not None and plan.exclusions:
-        detail = "Exclusions are not implemented; the requested exclusions have not been applied."
-        ctx.deps["issues"].append(
-            AskIssue(code="unsupported", operation=operation, message=detail)
-        )
-        ctx.deps["failures"].append("unsupported")
-        return {
-            "status": "unsupported",
-            "exclusions": plan.exclusions,
-            "detail": detail,
-        }
     result = await retrieve(ctx.deps["client"], operation, parameters)
     ctx.deps["store"].add(result)
     return ctx.deps["store"].summary(
@@ -53,9 +36,13 @@ async def search_resources(
     entity: Entity,
     limit: Annotated[int, Field(ge=1, le=50)] = 10,
 ) -> dict:
-    """Search gene/track candidates; semantic similarity is not association evidence."""
+    """Search datasets (entity=track) or genes; similarity is not association evidence."""
     operation = SEARCH_OPERATIONS.get(entity)
     if operation is None:
+        if entity == Entity.COLLECTION:
+            detail = "Collection search is not yet available."
+            ctx.deps.setdefault("warnings", []).append(detail)
+            return {"status": "unsupported", "detail": detail}
         detail = (
             "Searching variants by meaning is not available. "
             "Use a variant identifier instead."
@@ -81,13 +68,21 @@ async def get_gene(
         ResponseContent.FULL, ResponseContent.SUMMARY
     ] = ResponseContent.SUMMARY,
 ) -> dict:
-    """Fetch a brief record by default; request full content for needed gene annotations.
+    """Look up a gene; request full content for needed annotations or curated lists.
 
-    Full records remain server-owned and the UI still displays a summary card.
+    Args:
+        ctx (RunContext[dict]): Agent context with the API client and result store.
+        gene (str): Gene identifier or symbol.
+        content (ResponseContent): Summary or full gene record content.
+
+    Returns:
+        dict: Compact record evidence, or semantic candidates if no record matches.
     """
-    return await _execute(
-        ctx, "gene_full" if content == ResponseContent.FULL else "gene", {"gene": gene}
-    )
+    operation = "gene_full" if content == ResponseContent.FULL else "gene"
+    summary = await _execute(ctx, operation, {"gene": gene})
+    if summary["count"] == 0:
+        return await search_resources(ctx, gene, Entity.GENE)
+    return summary
 
 
 async def get_variant(ctx: RunContext[dict], variant: str) -> dict:

@@ -296,16 +296,9 @@ async def ask(
                             usage_limits=usage_limits,
                         )
                         deps["query_plan"] = planned.output
-                        if planned.output.clarifications:
-                            deps["failures"].append("clarification")
                         if planned.output.exclusions:
-                            deps["failures"].append("unsupported")
-                            deps["issues"].append(
-                                AskIssue(
-                                    code="unsupported",
-                                    operation="query_planning",
-                                    message="Exclusions are deferred and have not been applied.",
-                                )
+                            deps["warnings"].append(
+                                "Requested exclusions have not been applied."
                             )
                         native_events = adapter.run_stream_native(
                             deps=deps,
