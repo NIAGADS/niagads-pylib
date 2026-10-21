@@ -14,12 +14,9 @@ from pydantic_ai import ModelRetry, RunContext
 
 async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> dict:
     """Retrieve through the existing API and expose a compact evidence summary."""
-    try:
-        result = await retrieve(ctx.deps["client"], operation, parameters)
-        ctx.deps["store"].add(result)
-        return ctx.deps["store"].summary(result.id)
-    except Exception as exc:
-        raise RuntimeError(f"ASK operation {operation} failed: {exc}") from exc
+    result = await retrieve(ctx.deps["client"], operation, parameters)
+    ctx.deps["store"].add(result)
+    return ctx.deps["store"].summary(result.id)
 
 
 async def search_resources(
@@ -240,7 +237,7 @@ async def present_results(
         if len(ctx.deps["store"].presentations) >= 6:
             raise ValueError("Presentation limit reached")
         ctx.deps["store"].presentations.append(presentation)
-    except ValueError as exc:
+    except (ValueError, RuntimeError) as exc:
         raise ModelRetry(str(exc)) from exc
     return {
         "status": "validated",

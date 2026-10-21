@@ -20,14 +20,14 @@ class ResultStore(ComponentBaseMixin):
     def add(self, result: ResultSet) -> ResultSet:
         """Retain a result without sending its complete rows through the model."""
         if len(self.results) >= 12:
-            raise ValueError("Result limit reached")
+            raise RuntimeError("Result limit reached")
         self.results[result.id] = result
         return result
 
     def get(self, result_id: str) -> ResultSet:
         """Resolve only result IDs created by this run."""
         if result_id not in self.results:
-            raise ValueError("Unknown result reference")
+            raise RuntimeError("Unknown result reference")
         return self.results[result_id]
 
     def summary(self, result_id: str) -> dict:
@@ -74,5 +74,5 @@ class ResultStore(ComponentBaseMixin):
                 result.entity,
                 result.annotation,
             ) not in SOURCE_CHART_TYPES or result.content != ResponseContent.SUMMARY:
-                raise ValueError("Source chart requires an association summary")
+                raise RuntimeError("Source chart requires an association summary")
         return presentation

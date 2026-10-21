@@ -19,7 +19,7 @@ async def retrieve(
 ) -> ResultSet:
     """Execute a registered API GET and retain a bounded authoritative page."""
     if operation not in OPERATIONS:
-        raise ValueError("Operation is not registered")
+        raise RuntimeError(f"API operation {operation!r} is not registered")
     definition = OPERATIONS[operation]
     path = definition.endpoint
     semantic_search = definition.response_config.record_model is SearchMatch
