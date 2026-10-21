@@ -36,6 +36,8 @@ async def retrieve(
                 value = GenomicFeature.validate_gene_id(value)
             elif definition.entity == Entity.VARIANT:
                 value = GenomicFeature.validate_variant_id(value)
+            elif definition.entity == Entity.REGION:
+                value = GenomicFeature.validate_span(value)
             if not value or value in {".", ".."} or "/" in value:
                 raise ValueError("Invalid record identifier")
             path = path.format(**{identifier: quote(value, safe="")})

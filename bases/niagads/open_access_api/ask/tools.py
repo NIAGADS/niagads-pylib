@@ -203,7 +203,7 @@ async def get_region_associations(
         ResponseContent.FULL, ResponseContent.SUMMARY
     ] = ResponseContent.FULL,
 ) -> dict:
-    """Request regional associations or per-track counts; may return 501."""
+    """Request regional associations or per-track counts."""
     operation = (
         "region_associations_summary"
         if content == ResponseContent.SUMMARY

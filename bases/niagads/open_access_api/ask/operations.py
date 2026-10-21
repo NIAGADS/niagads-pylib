@@ -109,7 +109,7 @@ OPERATIONS = {
         ),
     ),
     "region_associations": AskOperation(
-        endpoint="/record/region/associations",
+        endpoint="/record/region/{region}/associations",
         entity=Entity.REGION,
         annotation=AnnotationKind.ASSOCIATIONS,
         response_config=ResponseConfiguration(
@@ -137,7 +137,7 @@ OPERATIONS = {
         ),
     ),
     "region_associations_summary": AskOperation(
-        endpoint="/record/region/associations",
+        endpoint="/record/region/{region}/associations",
         entity=Entity.REGION,
         annotation=AnnotationKind.ASSOCIATIONS,
         response_config=ResponseConfiguration(

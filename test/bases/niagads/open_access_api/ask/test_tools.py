@@ -9,10 +9,39 @@ from niagads.common.types import Entity
 from niagads.open_access_api.ask.contracts import ResultSet
 from niagads.open_access_api.ask.planning import QueryIntent, QueryPlan
 from niagads.open_access_api.ask.results import ResultStore
-from niagads.open_access_api.ask.tools import get_gene, get_track, search_resources
+from niagads.open_access_api.ask.tools import (
+    get_gene,
+    get_region_associations,
+    get_track,
+    search_resources,
+)
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+@pytest.mark.parametrize("region", ["1:100-200", "chr1:100-200"])
+@pytest.mark.parametrize("content", [ResponseContent.FULL, ResponseContent.SUMMARY])
+async def test_region_associations_use_validated_path(anyio_backend, region, content):
+    handler = Mock(return_value=httpx.Response(200, json={"data": []}))
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="http://api"
+    ) as client:
+        ctx = RunContext(
+            deps={"client": client, "store": ResultStore()},
+            model=TestModel(),
+            usage=RunUsage(),
+        )
+
+        summary = await get_region_associations(ctx, region, content=content)
+
+    request = handler.call_args.args[0]
+    assert request.url.path == "/record/region/1:100-200/associations"
+    assert "region" not in request.url.params
+    assert request.url.params["content"] == content.value
+    assert summary["count"] == 0
 
 
 @pytest.mark.anyio
