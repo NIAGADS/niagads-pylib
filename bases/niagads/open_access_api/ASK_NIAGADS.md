@@ -190,19 +190,42 @@ use `full` for individual `VariantAssociation` records or `summary` for existing
 `DynamicRecord` rows containing `track`, `traits`, and `num_associations`.
 The operation registry describes both responses with the existing record models.
 
-Supported components are `table` and `association_source_bar`. Source bars display
-the API's `num_associations` values for the tracks in the returned summary.
-ASK does not recount individual associations, aggregate gene annotation evidence,
-or infer scientific evidence from these counts. A summary page can contain only
-some tracks; preserve pagination and truncation warnings. At most 50 returned
-records are retained under the current adapter limit. Gene reports and full
-association records can be displayed in tables, not this chart.
+ASK v3 presentations select registered translators rather than generic components.
+Tables use explicit mappings for semantic matches, gene/variant/track records,
+associations and API count summaries. Each tool summary advertises compatible
+translator IDs, columns, required fields and grouping choices. Example selection:
+
+```json
+{
+  "translator": "track_records_table",
+  "result_id": "<returned result_id>",
+  "title": "Retrieved tracks",
+  "parameters": {"columns": ["id", "name", "data_source", "is_download_only"]}
+}
+```
+
+Pass this as the `presentation` argument to `present_results`. No rows or executable
+component options are accepted. Mapping rules come from `ask/presentations.py`
+and are exported for client conversion. Unsupported shapes remain inspectable as
+raw records, with provenance and pagination. Numeric and p-value histogram filters
+are disabled; categorical and boolean controls use the existing table UI.
+Reported p-value strings remain intact, including values below floating-point
+range; the separate neg_log10_pvalue field remains numeric.
+
+`association_counts_bar` displays API `num_associations` values by track from
+summary content. `category_counts_bar` counts loaded rows by a registered scalar
+categorical `group_by` field. These bars are independent of table filters; labels
+distinguish loaded-row counts from returned API aggregates and preserve has_more
+warnings. Configure `ASK_MAX_BAR_CATEGORIES` (positive integer, default 7). Above
+that cardinality, retain the complete count table and omit the bar. No truncation
+or new Other grouping is introduced for standalone bars.
 
 Entity identity uses `niagads.common.types.Entity`; annotation kinds use
 `niagads.api.common.types.AnnotationKind`. A report is an annotation kind; records
 remain the API's representation of retrieved information. Search candidates have
-`annotation: null` because a match is not a full entity report. Version 2 replaces
-the former mixed `kind` field; backend and frontend must be updated together.
+`annotation: null` because a match is not a full entity report. Version 3 retains
+these identity fields and replaces component-only selections with translator
+selections. Backend and frontend must be updated together; version 2 is rejected.
 
 Supported retrieval operations are declared in `ask/operations.py`, with an
 endpoint, entity, annotation kind, and the existing `ResponseConfiguration`
@@ -216,7 +239,7 @@ validation can distinguish summaries from full records. Model previews retain
 Search operations are derived from entries using `SearchMatch`, independently
 of their operation names. Registering an entity does not enable new retrieval.
 
-After changing the enums or `SOURCE_CHART_TYPES`, regenerate and commit the
+After changing the enums or `TABLE_RULES`, regenerate and commit the
 frontend constants from this repository (no API startup or provider call):
 
 ```bash

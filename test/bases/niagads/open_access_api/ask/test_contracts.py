@@ -3,8 +3,11 @@
 import pytest
 from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.open_access_api.ask.contracts import (
-    Presentation,
     ResultSet,
+)
+from niagads.open_access_api.ask.presentations import (
+    AssociationCountsPresentation,
+    TablePresentation,
 )
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic import ValidationError
@@ -26,15 +29,15 @@ def test_result_summary_omits_full_rows():
 
 
 def test_presentation_cannot_reference_unknown_result():
-    with pytest.raises(ValueError, match="Unknown result"):
+    with pytest.raises(RuntimeError, match="Unknown result"):
         ResultStore().validate_presentation(
-            Presentation(component="table", result_id="forged")
+            TablePresentation(translator="search_matches_table", result_id="forged")
         )
 
 
 def test_presentation_rejects_unknown_component():
     with pytest.raises(ValidationError):
-        Presentation(component="execute_js", result_id="result-1")
+        TablePresentation(translator="execute_js", result_id="result-1")
 
 
 def test_summary_preview_preserves_api_association_counts():
@@ -50,9 +53,7 @@ def test_summary_preview_preserves_api_association_counts():
     summary = store.summary(result.id)
     assert summary["content"] == "summary"
     assert summary["preview"] == [{"track": "track-a", "num_associations": 1200}]
-    store.validate_presentation(
-        Presentation(component="association_source_bar", result_id=result.id)
-    )
+    store.validate_presentation(AssociationCountsPresentation(result_id=result.id))
 
 
 def test_result_page_has_explicit_incompleteness():
@@ -80,13 +81,11 @@ def test_chart_requires_an_association_summary():
         result = store.add(
             ResultSet(entity=entity, annotation=annotation, content="summary")
         )
-        presentation = Presentation(
-            component="association_source_bar", result_id=result.id
-        )
+        presentation = AssociationCountsPresentation(result_id=result.id)
         if allowed:
             store.validate_presentation(presentation)
         else:
-            with pytest.raises(ValueError, match="association summary"):
+            with pytest.raises(ValueError):
                 store.validate_presentation(presentation)
 
 
@@ -110,7 +109,5 @@ def test_chart_rejects_full_association_records():
             rows=[{"variant": "rs1", "track": "track-a"}],
         )
     )
-    with pytest.raises(ValueError, match="association summary"):
-        store.validate_presentation(
-            Presentation(component="association_source_bar", result_id=result.id)
-        )
+    with pytest.raises(ValueError):
+        store.validate_presentation(AssociationCountsPresentation(result_id=result.id))

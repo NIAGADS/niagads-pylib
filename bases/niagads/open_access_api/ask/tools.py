@@ -6,8 +6,9 @@ from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.api.common.types import ResponseContent
 from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
-from niagads.open_access_api.ask.contracts import AskIssue, Presentation
+from niagads.open_access_api.ask.contracts import AskIssue
 from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
+from niagads.open_access_api.ask.presentations import Presentation
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
@@ -222,25 +223,13 @@ async def find_api_operations(ctx: RunContext[dict], query: str) -> dict:
     return {"operations": matches, "truncated": False}
 
 
-async def present_results(
-    ctx: RunContext[dict],
-    result_id: str,
-    component: Literal["table", "association_source_bar"] = "table",
-    title: str = "Retrieved evidence",
-) -> dict:
-    """Select a registered component for data retrieved during this run only."""
+async def present_results(ctx: RunContext[dict], presentation: Presentation) -> dict:
+    """Select an advertised translator and supported parameters, never supply rows."""
     try:
-        presentation = Presentation(
-            component=component, result_id=result_id, title=title
-        )
         ctx.deps["store"].validate_presentation(presentation)
         if len(ctx.deps["store"].presentations) >= 6:
             raise ValueError("Presentation limit reached")
         ctx.deps["store"].presentations.append(presentation)
     except (ValueError, RuntimeError) as exc:
         raise ModelRetry(str(exc)) from exc
-    return {
-        "status": "validated",
-        "result_id": result_id,
-        "component": component,
-    }
+    return {"status": "validated", **presentation.model_dump(mode="json")}

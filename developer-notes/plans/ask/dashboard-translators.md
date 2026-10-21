@@ -1,13 +1,13 @@
 # ASK dashboard translators: contract proposal
 
-Status: awaiting the user-requested interface review before product implementation.
+Status: user approved interfaces and category policy; implementation complete.
 
 ## Preparation
 
 - Python branch: codex/ask-dashboard-translators, from refactor/api at ef6d2ba1.
 - Frontend branch: codex/ask-dashboard-translators, from app/oa-api at c3962e5f.
 - Existing structured-query-planning branches are preserved and not dependencies.
-- Read both AGENTS.md files and current handoffs. No product code changed yet.
+- Read both AGENTS.md files and current handoffs before implementation.
 
 ## Proposed interfaces
 
@@ -89,7 +89,8 @@ Other, with missing values handled by existing controls. For standalone bars,
 propose a configurable maximum of seven displayed categories, using that existing
 value as the initial setting. When exceeded, keep the table and explain that a
 bar is unsuitable; do not silently truncate, invent Other, or change the data.
-This policy is proposed, not implemented pending review.
+The user approved this policy; it is implemented through ASK_MAX_BAR_CATEGORIES,
+transmitted to the client in the v3 envelope.
 
 ## Verification and follow-up
 
@@ -104,6 +105,27 @@ TODO: repair table histogram filters in a separate task. Next chart extension:
 regional Manhattan using genomic position and -log10(p), configurable disease and
 population grouping; preserve distinctions between p-values and other measures.
 
-Next step: user reviews this contract proposal, then implement mappings,
-presentation validation/agent capability metadata, renderer integration and
-focused verification; update both handoffs and commit/push the implementation.
+## Progress and rulings
+
+- User approved translator interfaces, envelope v3 and category policy before product changes.
+- Registry, typed selection validation and advertised capabilities implemented.
+- Mapping rules exported; TypeScript conversion and renderer integration implemented.
+- P-value strings retain their reported text. A narrow Table accessor/renderer change
+  avoids underflow. Decimal p-values sort without floating-point conversion;
+  nondecimal reported strings remain visible with p-value sorting disabled.
+- No compatible translator: preserve raw results rather than invent a generic mapping.
+- Added/updated focused test cases; did not execute tests under AGENTS.md.
+- Python v3 JSON schema generation, app TypeScript/ESLint passed. Table source
+  TypeScript passed using --ignoreDeprecations 5.0 to override its existing config
+  mismatch with the installed compiler. Repository TypeScript configuration unchanged.
+- No live model/database requests, SQL/ORM/ETL/embedding/retrieval changes, worktrees,
+  dependency installs or structured-planning changes.
+- Independent whole-change review found no high-confidence actionable issues.
+- Python AST/Black/isort/diff checks passed. App and Table source TypeScript and
+  targeted ESLint passed; final renderer check repeated after a small ID fix.
+- Multiple panels for one result receive distinct table/chart IDs using panel index.
+- Runtime tests/browser/model/database validation remains unperformed; static
+  verification and review do not establish live behavior.
+
+Next step: local integration review after fetching both branches and rebuilding
+the workspace Table package. Run tests only on explicit request.

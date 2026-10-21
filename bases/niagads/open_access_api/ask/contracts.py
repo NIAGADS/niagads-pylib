@@ -7,13 +7,8 @@ from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.api.common.types import AnnotationKind, ResponseContent
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.types import Entity
+from niagads.open_access_api.ask.presentations import Presentation
 from pydantic import ConfigDict, Field
-
-SOURCE_CHART_TYPES = (
-    (Entity.GENE, AnnotationKind.ASSOCIATIONS),
-    (Entity.VARIANT, AnnotationKind.ASSOCIATIONS),
-    (Entity.REGION, AnnotationKind.ASSOCIATIONS),
-)
 
 
 class AskIssue(CustomBaseModel):
@@ -48,24 +43,14 @@ class ResultSet(CustomBaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-class Presentation(CustomBaseModel):
-    """A registry selection, never executable frontend code or arbitrary options."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    component: Literal["table", "association_source_bar"]
-    result_id: str = Field(min_length=1)
-    title: str = Field(default="Retrieved evidence", max_length=160)
-    slot: Literal["primary", "secondary"] = "primary"
-
-
 class AskResponse(CustomBaseModel):
     """A complete structured part of a conversation response."""
 
     model_config = ConfigDict(extra="forbid")
 
     issues: list[AskIssue] = Field(default_factory=list)
-    version: Literal[2] = 2
+    version: Literal[3] = 3
+    max_bar_categories: int = Field(default=7, ge=1)
     status: Literal[
         "ok",
         "empty",

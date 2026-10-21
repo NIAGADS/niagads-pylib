@@ -10,7 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
-from niagads.open_access_api.ask.contracts import AskResponse, Presentation
+from niagads.open_access_api.ask.contracts import AskResponse
+from niagads.open_access_api.ask.presentations import TablePresentation
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
@@ -130,8 +131,9 @@ async def ask(
         if result_sent:
             return
         presentations = store.presentations or [
-            Presentation(component="table", result_id=r.id)
+            TablePresentation(translator=capabilities[0]["translator"], result_id=r.id)
             for r in list(store.results.values())[:6]
+            if (capabilities := store.capabilities(r.id))
         ]
         status = (
             "retrieval_error"
@@ -147,6 +149,7 @@ async def ask(
             )
         )
         envelope = AskResponse(
+            max_bar_categories=settings.max_bar_categories,
             status=status,
             results=list(store.results.values()),
             presentation=presentations,

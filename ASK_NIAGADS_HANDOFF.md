@@ -1,5 +1,53 @@
 # ASK NIAGADS local Codex handoff
 
+## Active task: dashboard translators
+
+Work is on **codex/ask-dashboard-translators** in both repositories, based on
+Python **refactor/api at ef6d2ba1** and frontend **app/oa-api at c3962e5f**.
+The separate codex/ask-structured-query-planning branches are preserved. Their
+planning implementation is not included in these bases and was not modified.
+
+The user approved the contract proposal in
+`developer-notes/plans/ask/dashboard-translators.md`. ASK now uses envelope version
+3: presentations select a registered translator, result_id and typed parameters.
+Deploy/update the paired backend and client together; version-2 selections are
+not silently reinterpreted. Server-owned rows/provenance/pagination are retained.
+
+Registered tables cover search matches, gene/variant/track records, associations
+and association counts. Python advertises/validates compatible selections and
+exports mapping rules; deterministic TypeScript translators construct table/bar
+props. The agent neither rewrites records nor computes aggregates. Unknown nested
+structures remain in raw records. Results without a compatible panel also retain
+their raw records and provenance in the UI.
+
+Categorical/boolean table filters reuse existing controls. Numeric/p-value column
+filters are disabled because histogram filters are excluded. Reported scientific
+p-value strings are preserved without numeric underflow; censored/nondecimal
+strings remain displayed with p-value sorting disabled for that dataset. Decimal
+p-value sorting is implemented without floating-point conversion. The separate
+negative-log10 field remains numeric.
+
+Standalone bars are independent of table filters. category_counts_bar counts
+loaded rows by a registered scalar field; association_counts_bar displays API
+num_associations without recounting. Scope labels and completeness warnings remain
+visible. ASK_MAX_BAR_CATEGORIES defaults to 7; larger sets keep all counts in the
+table without truncation or fabricated Other categories. Table filters retain
+their existing category policy. No standalone pies or shared panel state.
+
+Verification: app TypeScript/targeted ESLint and Pydantic v3 JSON schema generation
+passed. Table source TypeScript passed with --ignoreDeprecations 5.0 overriding an
+existing config value unsupported by the installed compiler. Final checks and
+independent review are recorded in the task plan. Test cases were added/updated
+but not executed under AGENTS.md; no live model/database requests were made.
+Rebuild the workspace Table package before local UI review to pick up p-value
+preservation changes. Retrieval, SQL/ORM/ETL and embedding behavior are unchanged.
+
+Next: local integration review. Deferred: table histogram repair, regional
+Manhattan with position/-log10(p) and disease/population grouping, cross-panel
+filtering. Resume from these branches, not main or the historical branches below.
+
+## Merged prototype checkpoint (historical)
+
 Updated: 2026-10-20. This document records the current implementation and user
 decisions. Use it with each repository's AGENTS.md and the linked run guides.
 Earlier design documents contain superseded scope decisions; this handoff and
