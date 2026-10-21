@@ -21,3 +21,4 @@ class AskSettings(BaseSettings):
     deadline: float = Field(default=90, gt=0, le=120)
     telemetry: bool = False
     capture_content: bool = False
+    feedback_enable: bool = False

@@ -3,19 +3,26 @@
 import asyncio
 import json
 import logging
+from contextlib import nullcontext
 from uuid import uuid4
 
 import httpx
+import logfire
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.contracts import AskResponse, Presentation
+from niagads.open_access_api.ask.feedback import (
+    AskFeedback,
+    create_feedback_reference,
+    record_feedback,
+)
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk
 from pydantic_ai.usage import UsageLimits
-from starlette.responses import StreamingResponse
+from starlette.responses import Response, StreamingResponse
 
 router = APIRouter(tags=["ASK NIAGADS"])
 
@@ -87,6 +94,26 @@ def get_api_transport(request: Request) -> httpx.AsyncBaseTransport:
     return httpx.ASGITransport(app=request.app)
 
 
+@router.post("/ask/feedback", status_code=204, operation_id="submitAskFeedback")
+async def submit_feedback(
+    feedback: AskFeedback,
+    request: Request,
+    settings: AskSettings = Depends(get_settings),
+) -> Response:
+    secret = getattr(request.app.state, "ask_feedback_signing_secret", None)
+    if (
+        not getattr(request.app.state, "ask_telemetry_enabled", False)
+        or not settings.feedback_enable
+        or secret is None
+    ):
+        raise HTTPException(503, "Feedback is currently unavailable")
+    try:
+        record_feedback(feedback, secret)
+    except ValueError as exc:
+        raise HTTPException(422, "Invalid feedback reference") from exc
+    return Response(status_code=204)
+
+
 @router.post(
     "/ask",
     summary="Ask NIAGADS",
@@ -129,6 +156,13 @@ async def ask(
     deps = {"store": store, "spec": spec, "warnings": [], "failures": [], "issues": []}
 
     result_sent = False
+    feedback_reference = None
+    feedback_secret = getattr(request.app.state, "ask_feedback_signing_secret", None)
+    feedback_enabled = bool(
+        getattr(request.app.state, "ask_telemetry_enabled", False)
+        and settings.feedback_enable
+        and feedback_secret is not None
+    )
 
     async def complete(result, failed: bool = False):
         nonlocal result_sent
@@ -152,6 +186,7 @@ async def ask(
             )
         )
         envelope = AskResponse(
+            feedback_reference=feedback_reference if not failed else None,
             status=status,
             results=list(store.results.values()),
             presentation=presentations,
@@ -192,15 +227,27 @@ async def ask(
                     )
 
                     async def observed_events():
-                        try:
-                            async for event in native_events:
-                                yield event
-                        except Exception:
-                            logging.getLogger("uvicorn.error.niagads.ask").exception(
-                                "ASK stream failed request_id=%s",
-                                headers["x-request-id"],
-                            )
-                            raise
+                        nonlocal feedback_reference
+                        with (
+                            logfire.span("ASK NIAGADS response")
+                            if feedback_enabled
+                            else nullcontext()
+                        ):
+                            if feedback_enabled:
+                                feedback_reference = create_feedback_reference(
+                                    feedback_secret
+                                )
+                            try:
+                                async for event in native_events:
+                                    yield event
+                            except Exception:
+                                logging.getLogger(
+                                    "uvicorn.error.niagads.ask"
+                                ).exception(
+                                    "ASK stream failed request_id=%s",
+                                    headers["x-request-id"],
+                                )
+                                raise
 
                     events = adapter.transform_stream(
                         observed_events(), on_complete=complete

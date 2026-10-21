@@ -64,6 +64,7 @@ class AskResponse(CustomBaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    feedback_reference: str | None = None
     issues: list[AskIssue] = Field(default_factory=list)
     version: Literal[2] = 2
     status: Literal[

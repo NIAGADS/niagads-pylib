@@ -38,6 +38,22 @@ Configure server process variables (secret values belong in secure settings):
 | ASK_TELEMETRY | false; enables optional Logfire instrumentation |
 | LOGFIRE_TOKEN | Optional server-side telemetry credential |
 | ASK_CAPTURE_CONTENT | false; explicitly opt in to model/prompt/tool content capture |
+| ASK_FEEDBACK_ENABLE | false; explicitly enables answer feedback when Logfire telemetry is available; runtime samples set TRUE |
+
+Completed ASK responses include a signed `feedback_reference` when feedback is
+available. The client submits it with a `rating` (1 for helpful, 0 for unhelpful)
+and an optional `comment` (up to 2,000 characters) to `POST /ask/feedback` through
+its same-origin proxy. Explicitly submitted comments are sent to Logfire even
+when model-content capture is disabled. Feedback is recorded as
+`gen_ai.evaluation.result`, named `user_helpfulness`, linked to the original
+response trace. A 204 response confirms acceptance for telemetry export, not
+remote delivery. The signing key is derived automatically from the server-side
+Logfire token using a feedback-specific HMAC label; no separate signing-secret
+setting is needed. Workers using the same Logfire token share the key across
+deployments. Rotating that token invalidates existing feedback references.
+No feedback or conversation records are stored by the application. The UI allows
+one successful submission per answer in the current session; this is not a
+server-side deduplication guarantee.
 
 OpenRouter can choose the chat model per request when `ASK_MODEL` names a router.
 The chat setting has no embedding-model restriction. Tool support of the chosen
