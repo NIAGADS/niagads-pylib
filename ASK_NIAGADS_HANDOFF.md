@@ -241,7 +241,7 @@ For local continuation:
 - [Focused tests](test/bases/niagads/open_access_api/ask)
 - [Validation/defaults review](developer-notes/plans/ask/validation-and-defaults-review.md)
 - [Operation registry](bases/niagads/open_access_api/ask/operations.py)
-- [Deferred work](TODO.md)
+- [Deferred work](developer-notes/TODO.md)
 - [Frontend guide on the task branch](https://github.com/NIAGADS/niagads-viz-monorepo/blob/codex/cloud-environment-setup/apps/open-access-api-client/README.md)
 
 Suggested prompt for the next local Codex session:

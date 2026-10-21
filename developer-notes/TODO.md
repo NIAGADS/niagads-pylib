@@ -10,6 +10,7 @@
 
 ## ASK NIAGADS alpha
 
+* Add Open Access to the NIAGADS code of conduct.
 * Identify the best matching source phrase within a semantically matched document
   chunk for gene, variant, and track searches. Embedding similarity identifies
   the winning chunk but does not locate an exact phrase. Return the full matched
