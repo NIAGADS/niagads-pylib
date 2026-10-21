@@ -46,6 +46,39 @@ Next: local integration review. Deferred: table histogram repair, regional
 Manhattan with position/-log10(p) and disease/population grouping, cross-panel
 filtering. Resume from these branches, not main or the historical branches below.
 
+### Track selection and data fetch
+
+Track search and track-record tables enable checkboxes and **Fetch selected track
+data**, with at most five selected tracks. The reusable Table option is
+`rowSelectOpts.maxSelectedRows` (positive integer; omitted means unlimited).
+Unchecked rows are disabled at the cap; selected rows can still be deselected,
+including across pages/filters. Bulk updates cannot add beyond the cap.
+
+The client action POSTs selected IDs to `/api/track-data`. Its server-side proxy
+calls exactly `/track/{track_id}/data` for each ID in parallel using ASK_API_URL,
+with no query parameters or LLM request. This upstream endpoint is maintained in
+another branch; it was not added or tested against a live API here. IDs are
+validated/encoded; authentication forwarding follows the existing ASK proxy.
+
+Each action appends an independent association table below its source track list.
+A Requested track ID column preserves endpoint provenance separately from any
+reported track field. Per-track successes, empty responses, failures, request
+references and original response metadata remain visible. Pagination stays
+per-track; omitted pagination means unknown completeness. No combined database
+total or complete-result claim is invented. Local action tables use the shared
+translator data interface without applying the bounded LLM envelope's row cap.
+Fetched records remain in the current UI session and are not sent into chat
+history or accepted as model evidence. Numeric histogram filters stay disabled.
+
+Focused cases: `apps/open-access-api-client/tests/track-data.test.ts` in the
+frontend. Cases cover selection limits, path validation, per-track partial
+failures/provenance/pagination, p-value strings and fixed upstream request paths.
+Tests were added but not executed under AGENTS.md. App and Table source TypeScript and targeted app ESLint passed; independent
+review found no actionable defects. The Table workspace bundle/declarations built
+successfully using a temporary compiler compatibility override, with existing
+circular-import/external-dependency warnings. No repository build configuration
+changed. No live model/database calls were made.
+
 ## Merged prototype checkpoint (historical)
 
 Updated: 2026-10-20. This document records the current implementation and user

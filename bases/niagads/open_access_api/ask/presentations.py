@@ -182,7 +182,7 @@ TABLE_RULES = {
         ],
     },
     "associations_table": {
-        "entities": ["gene", "variant", "region"],
+        "entities": ["gene", "variant", "region", "track"],
         "annotation": "associations",
         "content": ["full"],
         "fields": [

@@ -129,3 +129,31 @@ population grouping; preserve distinctions between p-values and other measures.
 
 Next step: local integration review after fetching both branches and rebuilding
 the workspace Table package. Run tests only on explicit request.
+
+## Follow-up: track selection and fetch
+
+User approved continuing on the same branches. Add optional positive
+rowSelectOpts.maxSelectedRows to Table, retaining unlimited selection for existing
+callers. ASK track lists set five. At the cap, permit deselection and reject bulk
+additions, counting active selections across pages and filters.
+
+Fetch button calls the new Next.js /api/track-data proxy, which requests fixed
+/track/{track_id}/data paths in parallel without parameters. The existing endpoint
+is in another branch; no backend data route, SQL, ORM or retrieval tool added.
+Canonical associations_table now supports track entity; mapping rules regenerated.
+
+Append a separate association table per action. Preserve requested track IDs
+separately from returned track fields, per-track raw responses, pagination, empty
+successes and failures. No fake combined paging or inferred completeness. The
+translator input now explicitly requires only presentation data, allowing local
+action results without fabricating an LLM ResultSet envelope or applying its
+100-row cap. No model/history round trip or automatic pagination.
+
+Implementation and independent static review complete; no actionable findings.
+App/Table TypeScript, targeted app ESLint, Python style and diff checks passed.
+Focused cases added but not run under AGENTS.md. Table bundle/declarations built
+with a temporary TypeScript compatibility override (existing circular-import and
+external-dependency warnings); tracked build configuration unchanged. The first
+build attempt failed because Node --input-type propagated to minifier workers;
+rerunning from a temporary script resolved it. No live endpoint/model/database
+requests.
