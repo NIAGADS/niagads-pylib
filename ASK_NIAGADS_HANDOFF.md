@@ -35,9 +35,10 @@ design: separate candidate searches alone do not prove all constraints were met.
 Checks: Python schema generation, syntax, Black/isort, full client TypeScript and
 targeted ESLint passed. Test cases were added but NOT executed per AGENTS.md.
 No live OpenRouter or database calls were made. Live interpretation quality,
-structured-output support and stream behavior remain unverified. The final review
-was an inline self-review because subagents were not explicitly requested; no
-independent review ran.
+structured-output support and stream behavior remain unverified. After the initial
+inline review, the user explicitly authorized subagents for this task. Parallel
+Python and frontend reviews found no actionable issues. These were static reviews;
+Python SDK runtime behavior was not independently verified.
 
 Current plan and progress: developer-notes/plans/ask/structured-query-planning.md.
 Focused cases: test/bases/niagads/open_access_api/ask/test_planning.py and the

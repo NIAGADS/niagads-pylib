@@ -1,8 +1,9 @@
 # Structured query planning implementation plan
 
 Use Superpowers executing-plans inline. Repository instructions override skill
-defaults: subagents require an explicit request; no worktrees requested, no tests or live requests without
-an explicit request. The user approved implementing the preceding brainstorming.
+defaults: subagents require an explicit request; the user subsequently authorized
+them for this task. No worktrees requested, no tests or live requests without an
+explicit request. The user approved implementing the preceding brainstorming.
 
 ## Goal and design
 
@@ -65,11 +66,14 @@ ETL work, or genomic data endpoints. Preserve current error diagnostics.
   retrieval guards, unavailable data retrieval and shared request budgets.
 - Verification: Python schema generation, AST syntax, Black/isort, full frontend
   TypeScript and targeted ESLint passed. No tests/live requests executed.
-- Final review: inline self-review; subagents were not explicitly requested, as required by AGENTS.md.
+- Final review: initial inline self-review, followed by parallel Python and frontend
+  reviews after explicit user authorization. No actionable findings. Reviews were
+  static; Python SDK runtime behavior was not independently verified.
 - Static checks initially found an unknown-to-Error type mismatch and JSX inside
   try/catch in the new view. Validation was separated from rendering and the
   existing error formatter now receives only Error instances; checks then passed.
 - Ruling: keep /query primitives unchanged — the user explicitly confirmed
   ASK-only planning, preserving direct retrieval semantics and costs.
-- Ruling: no worktrees or test execution; no subagents explicitly requested —
-  prior workspace preference and repository rules override skill defaults. Runtime behavior remains unverified.
+- Ruling: no worktrees or test execution; subagents authorized for this task.
+  Prior workspace preference and repository rules override skill defaults.
+  Runtime behavior remains unverified.
