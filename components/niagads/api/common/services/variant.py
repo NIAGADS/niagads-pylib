@@ -5,6 +5,7 @@ from niagads.api.common.models.annotations.associations import VariantAssociatio
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.services.base import BaseEndpointService
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
+from niagads.common.models.types import Range
 from niagads.common.types import RecordRetrievalResult
 from niagads.common.variant.models.record import VariantRecord
 from niagads.database.genomicsdb.schema.results.associations import (
@@ -42,19 +43,33 @@ class VariantEndpointService(BaseEndpointService):
     async def get_feature_location(
         self, id: str, flank: int = 0
     ) -> OneBasedGenomicRegion:
-        mappings = await self.get_record_mappings([id])
+        """Resolve the first matching record to a one-based region.
+
+        Args:
+            id (str): Variant identifier to resolve.
+            flank (int): Number of bases to extend on each side.
+
+        Returns:
+            OneBasedGenomicRegion: Location with the requested flanking bases.
+
+        Raises:
+            HTTPException: If no variant matches the identifier.
+        """
+        mappings = await self._lookup_records([id])
 
         if not mappings[id]:
             raise HTTPException(status_code=404, detail=f"Variant `{id}` not found")
 
-        mapped_feature = mappings[id]
+        mapped_feature = mappings[id][0]
+        start, end = mapped_feature["span"][1:-1].split(",")
 
         feature_location = OneBasedGenomicRegion.from_database_range(
-            chrosomome=mapped_feature["chromosome"], span=mapped_feature["span"]
+            chromosome=mapped_feature["chromosome"],
+            span=Range(start=int(start), end=int(end)),
         )
         if flank:
             feature_location.start -= flank
-            feature_location.end -= flank
+            feature_location.end += flank
         return feature_location
 
     async def fetch_record(self, variant_id: str) -> list:

@@ -15,6 +15,7 @@ from niagads.open_access_api.routes.records.gene import router as GeneRecordRout
 from niagads.open_access_api.routes.records.region import router as RegionRecordRouter
 from niagads.open_access_api.routes.records.track import router as TrackRecordRouter
 from niagads.open_access_api.routes.records.variant import router as VariantRecordRouter
+from niagads.open_access_api.routes.service import router as ServiceRouter
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 
 metadata = AppMetadata(
@@ -74,6 +75,7 @@ app_factory.add_router(TrackRecordRouter)
 app_factory.add_router(VariantRecordRouter)
 app_factory.add_router(QueryRouter)
 app_factory.add_router(RegionRecordRouter)
+app_factory.add_router(ServiceRouter)
 app_factory.add_router(AskRouter)
 
 # get the application object

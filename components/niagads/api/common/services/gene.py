@@ -66,18 +66,32 @@ class GeneEndpointService(BaseEndpointService):
     async def get_feature_location(
         self, id: str, flank: int = 0
     ) -> OneBasedGenomicRegion:
-        mappings = await self.get_record_mappings([id])
+        """Resolve the first matching record to a one-based region.
+
+        Args:
+            id (str): Gene identifier to resolve.
+            flank (int): Number of bases to extend on each side.
+
+        Returns:
+            OneBasedGenomicRegion: Location with the requested flanking bases.
+
+        Raises:
+            HTTPException: If no gene matches the identifier.
+        """
+        mappings = await self._lookup_records([id])
 
         if not mappings[id]:
             raise HTTPException(status_code=404, detail=f"Gene `{id}` not found")
-        mapped_feature = mappings[id]
+        mapped_feature = mappings[id][0]
+        start, end = mapped_feature["span"][1:-1].split(",")
 
         feature_location = OneBasedGenomicRegion.from_database_range(
-            chrosomome=mapped_feature["chromosome"], span=mapped_feature["span"]
+            chromosome=mapped_feature["chromosome"],
+            span=Range(start=int(start), end=int(end)),
         )
         if flank:
             feature_location.start -= flank
-            feature_location.end -= flank
+            feature_location.end += flank
         return feature_location
 
     async def fetch_gene_structure(self, gene_id: str) -> list[DynamicRecord]:
