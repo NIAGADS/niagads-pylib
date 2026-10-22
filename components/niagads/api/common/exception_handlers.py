@@ -1,5 +1,6 @@
 """Exception handlers used by NIAGADS FastAPI applications."""
 
+import json
 import traceback
 from math import ceil
 
@@ -78,7 +79,7 @@ async def runtime_exception_handler(
     original = exc
     while original is not None:
         if isinstance(original, RequestValidationError):
-            return await fastapi_request_validation_exception_handler(request, original)
+            return await request_validation_exception_handler(request, original)
         original = original.__cause__ or original.__context__
 
     return JSONResponse(
@@ -124,17 +125,24 @@ async def request_validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
 ) -> Response:
-    """Delegate request validation errors to FastAPI's default handler.
+    """Preserve validation details with the request reference and traceback.
 
     Args:
         request (Request): The incoming HTTP request.
         exc (RequestValidationError): The request validation exception.
 
     Returns:
-        Response: FastAPI's standard validation-error response.
+        Response: The validation-error response with diagnostic details.
     """
 
-    return await fastapi_request_validation_exception_handler(request, exc)
+    response = await fastapi_request_validation_exception_handler(request, exc)
+    content = json.loads(response.body)
+    content.update(
+        stack_trace=traceback.format_exception(exc),
+        request=_request_url(request),
+        request_id=request.headers.get("X-Request-ID"),
+    )
+    return JSONResponse(status_code=response.status_code, content=content)
 
 
 async def system_exception_handler(

@@ -1,6 +1,6 @@
 """Validated result and presentation contracts; datasets never come from the LLM."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import uuid4
 
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
@@ -60,7 +60,9 @@ class PresentationIntent(CustomBaseModel):
     view: Literal["auto", "table", "plot"] = "auto"
     title: str = Field(default="Retrieved evidence", max_length=160)
     plot_type: str | None = Field(default=None, min_length=1)
-    group_by: str | None = Field(default=None, min_length=1)
+    group_by: str | list[Annotated[str, Field(min_length=1)]] | None = Field(
+        default=None, min_length=1
+    )
     x: str | None = Field(default=None, min_length=1)
     y: str | None = Field(default=None, min_length=1)
     filters: list[ResultFilter] = Field(default_factory=list, max_length=10)

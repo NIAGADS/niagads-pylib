@@ -26,14 +26,27 @@ def test_runtime_handler_preserves_wrapped_request_validation(explicit_cause):
                 raise RuntimeError("Unexpected Error") from err
             raise RuntimeError("Unexpected Error")
 
-    request = Request({"type": "http", "path": "/", "headers": []})
+    request = Request(
+        {
+            "type": "http",
+            "path": "/",
+            "headers": [(b"x-request-id", b"validation-request")],
+        }
+    )
     response = asyncio.run(runtime_exception_handler(request, caught.value))
 
     assert response.status_code == 422
-    detail = json.loads(response.body)["detail"]
+    payload = json.loads(response.body)
+    detail = payload["detail"]
     assert detail[0]["loc"] == ["query", "flank"]
     assert detail[0]["type"] == "greater_than_equal"
     assert detail[0]["input"] == "-1"
+    assert payload["request_id"] == "validation-request"
+    assert payload["request"] == "/"
+    assert "RequestValidationError" in "".join(payload["stack_trace"])
+    assert "test_runtime_handler_preserves_wrapped_request_validation" in "".join(
+        payload["stack_trace"]
+    )
 
 
 def test_runtime_handler_retains_internal_error_response():

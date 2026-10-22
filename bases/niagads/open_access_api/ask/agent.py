@@ -52,6 +52,12 @@ Use present_results to record presentation intent for retrieved data. When the
 user explicitly requests a table or plot, record view="table" or view="plot" for
 that result; preserve their preferred plot_type and data field hints (group_by,
 x, y) when specified. These are preferences, not frontend component/adapter IDs.
+For multiple grouping fields, use a list in group_by. For association plots
+grouped by population and disease or neuropathology, use
+group_by=["population", "disease_or_neuropathology"]. Request full association
+records for regional significance plots, rather than summary counts. A plot of
+variant associations across a gene or genomic region defaults to a regional
+Manhattan plot in the UI; do not substitute a bar plot of association counts.
 Never generate component props, column definitions or executable code. The UI
 owns adapter selection, chart eligibility, filters, layout and display limits.
 Do not claim that a requested view was rendered: the UI may explain unsupported
