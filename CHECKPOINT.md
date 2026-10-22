@@ -8,6 +8,9 @@ instruction conflict by retaining the feature's region/location/ADSP workflow an
 base compaction/retry guidance; normalized trailing whitespace. Automatic merges
 preserved ResultFilter, filters on presentation intents and JSON/SSE error encoding.
 
+The remote feature branch advanced to f6ce80dd during the merge; its variant
+record positional_id visibility change was merged without modification.
+
 62 isolated ASK context/limit/retry/tool checks pass. The recorded fixture was
 injected as an isolated pytest plugin to avoid importing database-backed app
 startup. Native SDK tests emitted four legacy-httpx warnings. Syntax, formatting

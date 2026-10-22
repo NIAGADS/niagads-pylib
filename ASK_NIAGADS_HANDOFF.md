@@ -8,6 +8,9 @@ feature-location resolution, regional variant retrieval and ADSP equality-filter
 presentation intents alongside compaction, token recovery and OpenRouter retries.
 The only code conflict was agent instructions; both behaviors were retained.
 
+The remote feature branch advanced to f6ce80dd during the merge; its variant
+record positional_id visibility change was merged without modification.
+
 62 focused offline ASK context/limit/retry/tool checks pass, using recorded gene
 fixtures without API-app/database startup. Syntax, Black/isort and diff checks
 pass. Four SDK legacy-httpx deprecation warnings remain. No DB, ORM or live-model
