@@ -149,7 +149,12 @@ async def test_region_associations_use_validated_path(anyio_backend, region, con
 @pytest.mark.anyio
 @pytest.mark.parametrize("anyio_backend", ["asyncio"])
 @pytest.mark.parametrize("has_results", [False, True])
-async def test_collection_search_is_a_nonfatal_limitation(anyio_backend, has_results):
+@pytest.mark.parametrize(
+    "entity", [Entity.COLLECTION, Entity.ONTOLOGY_TERM, Entity.REGION, Entity.VARIANT]
+)
+async def test_unsupported_search_is_log_only(
+    anyio_backend, has_results, entity, caplog
+):
     store = ResultStore()
     if has_results:
         result = ResultSet(
@@ -161,13 +166,14 @@ async def test_collection_search_is_a_nonfatal_limitation(anyio_backend, has_res
     deps = {"store": store, "warnings": [], "failures": [], "issues": []}
     ctx = RunContext(deps=deps, model=TestModel(), usage=RunUsage())
 
-    summary = await search_resources(ctx, "Alzheimer disease", Entity.COLLECTION)
+    with caplog.at_level("INFO", logger="uvicorn.error.niagads.ask"):
+        summary = await search_resources(ctx, "Alzheimer disease", entity)
 
-    assert summary["status"] == "unsupported"
-    assert "Collection search is not yet available" in summary["detail"]
+    assert summary == {"status": "unsupported", "entity": entity.value}
+    assert f"No search operation registered for entity={entity.value}" in caplog.text
     assert deps["failures"] == []
     assert deps["issues"] == []
-    assert deps["warnings"] == [summary["detail"]]
+    assert deps["warnings"] == []
     if has_results:
         assert store.get(result.id).rows == [{"id": "track-1"}]
     else:

@@ -1,5 +1,6 @@
 """Typed tool definitions adapting existing API operations, never database access."""
 
+import logging
 from typing import Annotated, Literal
 
 from niagads.api.common.constants import MAX_NUM_PAGES
@@ -47,25 +48,10 @@ async def search_resources(
     """Search datasets (entity=track) or genes; similarity is not association evidence."""
     operation = SEARCH_OPERATIONS.get(entity)
     if operation is None:
-        if entity == Entity.COLLECTION:
-            detail = "Collection search is not yet available."
-            ctx.deps.setdefault("warnings", []).append(detail)
-            return {"status": "unsupported", "detail": detail}
-        detail = (
-            "Searching variants by meaning is not available. "
-            "Use a variant identifier instead."
-            if entity == Entity.VARIANT
-            else "Searching this type of record is not available. Ask about genes or datasets."
+        logging.getLogger("uvicorn.error.niagads.ask").info(
+            "No search operation registered for entity=%s", entity.value
         )
-        ctx.deps.setdefault("issues", []).append(
-            AskIssue(
-                code="unsupported",
-                operation="search_resources",
-                message=detail,
-            )
-        )
-        ctx.deps.setdefault("failures", []).append("unsupported")
-        return {"status": "unsupported", "detail": detail}
+        return {"status": "unsupported", "entity": entity.value}
     return await _execute(ctx, operation, {"text": text, "limit": limit})
 
 
