@@ -148,7 +148,9 @@ def test_failed_responses_include_feedback_reference(
     feedback_client.app.dependency_overrides[get_agent] = lambda: agent
     planner = MagicMock()
     planner.run = AsyncMock(
-        return_value=SimpleNamespace(output=QueryPlan(intent=QueryIntent.OTHER))
+        return_value=SimpleNamespace(
+            output=QueryPlan(goal="Protocol interpretation", intent=QueryIntent.OTHER)
+        )
     )
     if failure == "planner":
         planner.run.side_effect = RuntimeError("Planning failed")

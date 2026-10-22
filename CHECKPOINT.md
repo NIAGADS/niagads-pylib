@@ -1,5 +1,41 @@
 # ASK working context — implementation ready for local review, 2026-10-21
 
+## Current task: incremental dependent execution — 2026-10-22
+
+Continue on `codex/ask-stepwise-execution`, created from updated `refactor/api`
+415ccad9. Paired frontend branch has the same name, based on app/oa-api 82feb577.
+This supersedes historical branch pointers below; variants-by-region is now in
+both development bases and remains preserved.
+
+The existing PydanticAI loop executes dependent actions. QueryPlan now carries a
+bounded goal, flat concepts, short constraints, unresolved scope and necessary
+clarifications/evidence hints, without a recursive tree or tool sequence. The
+preliminary interpretation call remains; both calls keep max_tokens=2000 and the
+same shared budgets/deadline/retries. No new executor, provider or dependencies.
+Gene/structure evidence_fields can be selected per call; structure summaries now
+expose transcript identities/spans without needing upfront prediction. Exons stay
+opt-in. clarify_request records the existing clarification status while retaining
+retrieved evidence. Native unsupported outcomes and brief-response rules remain.
+
+Frontend strict validation and generated enums match the new interpretation;
+deploy both repos together. Result envelope v4, UI adapters/downloads, feature
+location and regional routes, +/-10 kb defaults, typed ADSP filters, one-record
+regional tables and omission of invalid SSE null fields are unchanged. No paging
+implementation or commentary; ASK pagination TODO remains.
+
+Focused regressions added for real recorded gene evidence and simulated native
+SDK dependent exchanges, exact transcript scope, clarification, unsupported tools,
+per-call annotations and request/tool/deadline termination. Tests NOT RUN:
+Backend AGENTS.md allows execution only on explicit request. The paired frontend
+rules permit tests: all three new interpretation-contract regressions pass.
+Static AST/JSON-schema/tool registration, Black/isort, frontend TypeScript/ESLint/
+Prettier and diff checks pass.
+Black reports its existing Python 3.12 / target 3.13 warning; AST parses on 3.12.
+No live API, database, model or browser validation; no incident diagnosis.
+
+Next: explicitly authorized focused tests and local live model/API review. See
+`developer-notes/plans/ask/stepwise-execution.md` and the updated ASK guide.
+
 ## Current task: variants-by-region integration — 2026-10-21
 
 The user requested merging development bases into feature/variants-by-region in

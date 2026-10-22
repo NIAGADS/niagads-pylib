@@ -299,7 +299,9 @@ def test_planner_retry_status_is_streamed_before_plan_and_cleared(monkeypatch):
                 body="Protocol busy",
                 headers={"retry-after": "0"},
             )
-        return SimpleNamespace(output=QueryPlan(intent="conversation"))
+        return SimpleNamespace(
+            output=QueryPlan(goal="Protocol interpretation", intent="conversation")
+        )
 
     async def plan(*args, **kwargs):
         return await retries.call_with_retry(planning_call)

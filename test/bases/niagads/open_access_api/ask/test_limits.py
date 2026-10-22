@@ -41,7 +41,9 @@ def test_interrupted_stream_preserves_records_and_native_diagnostics(
         if stage == "planner":
             usage.input_tokens = usage_limits.input_tokens_limit + 1
             usage_limits.check_tokens(usage)
-        return SimpleNamespace(output=QueryPlan(intent="lookup_record"))
+        return SimpleNamespace(
+            output=QueryPlan(goal="Protocol interpretation", intent="lookup_record")
+        )
 
     async def retrieve(*args):
         return retrieved

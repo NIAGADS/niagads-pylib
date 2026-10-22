@@ -392,7 +392,7 @@ async def ask(
                 yield "data: [DONE]\n\n"
 
     async def stream():
-        # Planner status must reach the browser before planning finishes.
+        # Interpretation-call status must reach the browser before execution begins.
         queue: asyncio.Queue[str | Exception | None] = asyncio.Queue()
 
         def report_status(status: RetryStatus | None):
