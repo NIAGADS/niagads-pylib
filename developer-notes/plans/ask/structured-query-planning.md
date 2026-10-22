@@ -1,5 +1,8 @@
 # Structured query planning implementation plan
 
+Superseded for current interpretation/execution by [stepwise-execution.md](stepwise-execution.md).
+The recursive contract below is historical.
+
 Use Superpowers executing-plans inline. Repository instructions override skill
 defaults: subagents require an explicit request; the user subsequently authorized
 them for this task. No worktrees requested, no tests or live requests without an

@@ -9,7 +9,6 @@ from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import Entity
 from niagads.genome_reference.human import GenomeBuild
 from niagads.open_access_api.ask.planning import (
-    BooleanOperator,
     ConceptCategory,
     GeneEvidence,
     LocationKind,
@@ -32,9 +31,6 @@ class AskTypeExporter(ComponentBaseMixin):
             "QueryIntent": {member.name: member.value for member in QueryIntent},
             "ConceptCategory": {
                 member.name: member.value for member in ConceptCategory
-            },
-            "BooleanOperator": {
-                member.name: member.value for member in BooleanOperator
             },
             "LocationKind": {member.name: member.value for member in LocationKind},
             "GenomeBuild": {member.name: member.value for member in GenomeBuild},

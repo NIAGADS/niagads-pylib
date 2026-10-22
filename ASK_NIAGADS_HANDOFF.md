@@ -1,5 +1,82 @@
 # ASK NIAGADS local Codex handoff
 
+## Annotation regression: optional interpretation — 2026-10-21
+
+Continue on the existing `codex/ask-stepwise-execution` branch in both repos.
+This follow-up supersedes the mandatory preliminary-call design below. Both
+checkouts were clean at inspection; no user changes were overwritten.
+
+The supplied trace establishes invalid interpretation JSON at the separate
+pre-retrieval call. The preceding bounded-schema change still required that call
+and therefore did not remove the blocking integration. Finish reason/provider
+usage were not supplied; token truncation and provider/model attribution remain
+unverified. No live incident reproduction, model switch or retry increase.
+
+Removed build_query_planner and the mandatory transport call. One retrieval
+agent now acts directly on clear requests, with optional record_query_plan using
+the same fixed, bounded QueryPlan schema as native tool arguments. It can record
+interpretation after identifier resolution. Only validated interpretations emit
+data-niagads-plan through the existing stream; absent plans are valid. Invalid
+optional planning uses native validation/retry exhaustion, explicitly errors and
+preserves any previously retrieved records; no string repair/default/fake plan.
+
+Gene annotation instructions cover BOTH full gene evidence and gene associations,
+using returned track IDs with get_track for associated dataset metadata when
+needed. Verified integrations: ResultStore summaries carry actual track IDs in
+previews/source references/trait evidence; existing frontend adapters handle
+association evidence/counts and track records. No new endpoint, keyword router,
+workflow executor, SQL, ORM, retrieval or frontend component change.
+
+Added route-level protocol regressions for direct gene/association retrieval,
+planning after resolution and supplied malformed JSON preserving earlier gene
+evidence. Existing limit/retry/feedback/deadline tests now target the single
+native loop. Recorded APOE data and empty association responses are protocol
+fixtures, not claims of live biological coverage. Backend tests NOT RUN per
+AGENTS.md. Static Python AST, JSON schema/tool registration, Black/isort and diff
+checks pass. Frontend changes are documentation only; prior client checks were
+not rerun. Existing 2,000-token cap, deadlines, budgets, regional routes/defaults,
+ADSP/table behavior, feedback and SSE optional-null omission remain.
+
+Next: explicitly authorized offline backend regressions, then local live review
+of gene annotations plus associated tracks. Live model selection/formatting and
+retrieval quality remain unverified.
+
+## Current task: incremental dependent execution — 2026-10-22
+
+Continue on `codex/ask-stepwise-execution`, created from updated `refactor/api`
+415ccad9. Paired frontend branch has the same name, based on app/oa-api 82feb577.
+This supersedes historical branch pointers below; variants-by-region is now in
+both development bases and remains preserved.
+
+The existing PydanticAI loop executes dependent actions. QueryPlan now carries a
+bounded goal, flat concepts, short constraints, unresolved scope and necessary
+clarifications/evidence hints, without a recursive tree or tool sequence. The
+preliminary interpretation call remains; both calls keep max_tokens=2000 and the
+same shared budgets/deadline/retries. No new executor, provider or dependencies.
+Gene/structure evidence_fields can be selected per call; structure summaries now
+expose transcript identities/spans without needing upfront prediction. Exons stay
+opt-in. clarify_request records the existing clarification status while retaining
+retrieved evidence. Native unsupported outcomes and brief-response rules remain.
+
+Frontend strict validation and generated enums match the new interpretation;
+deploy both repos together. Result envelope v4, UI adapters/downloads, feature
+location and regional routes, +/-10 kb defaults, typed ADSP filters, one-record
+regional tables and omission of invalid SSE null fields are unchanged. No paging
+implementation or commentary; ASK pagination TODO remains.
+
+Focused regressions added for real recorded gene evidence and simulated native
+SDK dependent exchanges, exact transcript scope, clarification, unsupported tools,
+per-call annotations and request/tool/deadline termination. Tests NOT RUN:
+Backend AGENTS.md allows execution only on explicit request. The paired frontend
+rules permit tests: all three new interpretation-contract regressions pass.
+Static AST/JSON-schema/tool registration, Black/isort, frontend TypeScript/ESLint/
+Prettier and diff checks pass.
+Black reports its existing Python 3.12 / target 3.13 warning; AST parses on 3.12.
+No live API, database, model or browser validation; no incident diagnosis.
+
+Next: explicitly authorized focused tests and local live model/API review. See
+`developer-notes/plans/ask/stepwise-execution.md` and the updated ASK guide.
+
 ## Current task: variants-by-region base merge — 2026-10-21
 
 Continue on feature/variants-by-region in both repos. This supersedes historical
