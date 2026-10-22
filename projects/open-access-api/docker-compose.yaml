@@ -12,8 +12,8 @@ services:
     # note: multi-master requires active replication
     # command: keydb-server --multi-master yes --protected-mode no --bind 0.0.0.0
     command: keydb-server --protected-mode no --bind 0.0.0.0
-    volumes:
-      - ${KEYDB_DATA_DIR}:/data
+    # volumes:
+    #   - ${KEYDB_DATA_DIR}:/data
 
   oaa-service:
     image: oaa-service:${API_VERSION}
