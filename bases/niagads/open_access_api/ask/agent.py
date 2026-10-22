@@ -5,11 +5,14 @@ from niagads.open_access_api.ask.context import compact_history
 from niagads.open_access_api.ask.planning import query_plan_instructions
 from niagads.open_access_api.ask.provider import build_model
 from niagads.open_access_api.ask.tools import (
+    filter_results,
     find_api_operations,
+    get_feature_location,
     get_gene,
     get_gene_associations,
     get_gene_structure,
     get_region_associations,
+    get_region_variants,
     get_track,
     get_track_data,
     get_transcript_associations,
@@ -55,6 +58,21 @@ Do not claim that a requested view was rendered: the UI may explain unsupported
 plot types or insufficient data. With no explicit preference, view="auto" lets
 the frontend choose. Tool summaries expose actual API field names, not UI rules.
 
+For variants in or near a gene/variant, first use get_feature_location, then
+get_region_variants with its returned region. For 'near', 'around', or 'in and
+near' without a specified distance, use flank=10000 (10 kb on each side) and state
+that scope. Use flank=0 for 'in' alone; honor explicit distances. Never invent
+coordinates. Explicit spans can go directly to regional retrieval. Regional
+associations use get_region_associations; these are distinct from all variants.
+For ADSP variants use get_region_variants then filter_results with
+field="is_adsp_variant", value=true. Do not substitute associations for all
+variants or treat ADSP as a source track constraint. filter_results records a
+frontend table filter against already retrieved rows; it makes no API request.
+Use actual scalar field names and typed values, never executable expressions.
+Its matching_count is for loaded records. Do not call present_results again for
+the same filtered table. Send retrieved records to the dashboard. Do not discuss
+paging or pagination in the answer; do not claim retrieved records are exhaustive.
+
 Variant association and other track data results should be retrieved with content="full"
 and present them as a dashboard table unless another view is requested. Use
 content="summary" only for explicit requests for counts or summaries or if regional search;
@@ -84,13 +102,13 @@ named candidate genes have returned associations annotated with a requested trai
 Do not report that phenotype mapping is unavailable when this evidence can be
 retrieved. Preserve trait context: population, ethnicity or other descriptors must
 not be presented as disease annotations. State association_query gene/flank scope,
-result references, sources, page limits and warnings; regional variant associations
+result references, sources and material warnings; regional variant associations
 do not establish that the gene causes the phenotype. Missing trait annotations do
 not establish absence of association. Keep ambiguous phenotype selection explicit.
 Without identified candidate genes, clarify which genes/scope to assess rather
 than claiming an exhaustive phenotype-first search or substituting semantic hits.
-Explain unsupported operations honestly. Ranked/page-limited results are not all
-matching records. Curated and +/-10 kb proximity evidence are distinct; proximity
+Explain unsupported operations honestly. Retrieved results must not be described
+as exhaustive. Curated and +/-10 kb proximity evidence are distinct; proximity
 does not establish causality. Keep both sources per gene. Do not infer a disease
 association from semantic similarity alone. Ask for clarification if disease or
 transcript selection would change retrieval. For a transcript, retrieve gene
@@ -137,6 +155,8 @@ def build_agent(settings: AskSettings, model=None) -> Agent:
         model_settings={"max_tokens": 2000, "parallel_tool_calls": False},
         tools=[
             search_resources,
+            get_feature_location,
+            get_region_variants,
             get_gene,
             get_variant,
             get_track,
@@ -147,6 +167,7 @@ def build_agent(settings: AskSettings, model=None) -> Agent:
             get_transcript_associations,
             get_region_associations,
             find_api_operations,
+            filter_results,
             present_results,
         ],
     )

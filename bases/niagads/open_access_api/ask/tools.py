@@ -5,8 +5,12 @@ from typing import Annotated, Literal
 from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.api.common.types import ResponseContent
 from niagads.common.types import Entity
-from niagads.open_access_api.ask.api_client import retrieve
-from niagads.open_access_api.ask.contracts import AskIssue, PresentationIntent
+from niagads.open_access_api.ask.api_client import resolve_feature_location, retrieve
+from niagads.open_access_api.ask.contracts import (
+    AskIssue,
+    PresentationIntent,
+    ResultFilter,
+)
 from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
@@ -88,6 +92,44 @@ async def get_gene(
 async def get_variant(ctx: RunContext[dict], variant: str) -> dict:
     """Retrieve variant records by refSNP, structural, or positional allelic ID."""
     return await _execute(ctx, "variant", {"variant": variant})
+
+
+async def get_feature_location(
+    ctx: RunContext[dict],
+    identifier: str,
+    flank: Annotated[int, Field(ge=0, le=1000000)] = 0,
+) -> dict:
+    """Resolve a gene/variant span; use flank=10000 for unspecified 'near' scope.
+
+    Args:
+        ctx (RunContext[dict]): Agent context containing the API client.
+        identifier (str): Gene symbol, gene ID, or variant ID.
+        flank (int): Bases to extend on both sides; zero for the exact footprint.
+
+    Returns:
+        dict: Resolved region, coordinates, and the requested flanking distance.
+    """
+    region = await resolve_feature_location(ctx.deps["client"], identifier, flank)
+    return {
+        "region": f"{region.chromosome}:{region.start}-{region.end}",
+        "chr": str(region.chromosome),
+        "start": region.start,
+        "end": region.end,
+        "flank": flank,
+    }
+
+
+async def get_region_variants(ctx: RunContext[dict], region: str) -> dict:
+    """Retrieve variant records in a resolved span, including ADSP flags.
+
+    Args:
+        ctx (RunContext[dict]): Agent context with the API client and result store.
+        region (str): Region in chrN:start-end or N:start-end format.
+
+    Returns:
+        dict: Evidence summary referencing the retrieved records.
+    """
+    return await _execute(ctx, "region_variants", {"region": region})
 
 
 async def get_track(ctx: RunContext[dict], track: str) -> dict:
@@ -210,7 +252,7 @@ async def get_region_associations(
         ResponseContent.FULL, ResponseContent.SUMMARY
     ] = ResponseContent.FULL,
 ) -> dict:
-    """Request regional associations or per-track counts; may return 501."""
+    """Request regional associations or per-track counts."""
     operation = (
         "region_associations_summary"
         if content == ResponseContent.SUMMARY
@@ -270,3 +312,45 @@ async def present_results(
     except (ValueError, RuntimeError) as exc:
         raise ModelRetry(str(exc)) from exc
     return {"status": "recorded", **presentation.model_dump(mode="json")}
+
+
+async def filter_results(
+    ctx: RunContext[dict],
+    result_id: str,
+    filters: Annotated[list[ResultFilter], Field(min_length=1, max_length=10)],
+    title: str = "Filtered records",
+) -> dict:
+    """Request frontend equality filters on retrieved rows without another query.
+
+    Args:
+        ctx (RunContext[dict]): Agent context containing this run's results.
+        result_id (str): Reference to an already retrieved result.
+        filters (list[ResultFilter]): Exact scalar field matches, combined by AND.
+        title (str): Title of the filtered table.
+
+    Returns:
+        dict: Recorded presentation intent and matching count for loaded rows.
+    """
+    try:
+        result = ctx.deps["store"].get(result_id)
+        fields = set()
+        matching_count = 0
+        for row in result.rows:
+            fields.update(row)
+            matching_count += all(
+                isinstance(row.get(item.field), bool) == isinstance(item.value, bool)
+                and row.get(item.field) == item.value
+                for item in filters
+            )
+        for requested in filters:
+            if result.rows and requested.field not in fields:
+                raise ValueError(f"Unknown filter field: {requested.field}")
+        intent = PresentationIntent(
+            result_id=result_id, view="table", title=title, filters=filters
+        )
+    except (ValueError, RuntimeError) as exc:
+        raise ModelRetry(str(exc)) from exc
+    recorded = await present_results(ctx, intent)
+    recorded["matching_count"] = matching_count
+    recorded["loaded_count"] = len(result.rows)
+    return recorded

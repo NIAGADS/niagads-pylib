@@ -46,4 +46,5 @@ class VariantBrief(VariantDescriptor, ORMCompatibleRecord):
 class Variant(VariantRecord, ORMCompatibleRecord): ...
 
 
-class VariantAssociation(VariantRecord, ORMCompatibleRecord): ...
+class VariantAssociation(VariantRecord, ORMCompatibleRecord):
+    positional_id: str = Field(exclude=True)

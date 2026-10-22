@@ -185,6 +185,8 @@ def test_failed_responses_include_feedback_reference(
         event for event in events if event["type"] == "data-niagads-result"
     ]
     assert len(result_events) == 1
+    assert "id" not in result_events[0]
+    assert "transient" not in result_events[0]
     result = result_events[0]["data"]
     assert result["status"] == "retrieval_error"
     assert result["results"] == []

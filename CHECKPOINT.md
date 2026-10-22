@@ -1,5 +1,24 @@
 # ASK working context — implementation ready for local review, 2026-10-21
 
+## Current task: variants-by-region integration — 2026-10-21
+
+The user requested merging development bases into feature/variants-by-region in
+both repositories. Backend base: origin/refactor/api 72db9575. Resolved the agent
+instruction conflict by retaining the feature's region/location/ADSP workflow and
+base compaction/retry guidance; normalized trailing whitespace. Automatic merges
+preserved ResultFilter, filters on presentation intents and JSON/SSE error encoding.
+
+The remote feature branch advanced to f6ce80dd during the merge; its variant
+record positional_id visibility change was merged without modification.
+
+62 isolated ASK context/limit/retry/tool checks pass. The recorded fixture was
+injected as an isolated pytest plugin to avoid importing database-backed app
+startup. Native SDK tests emitted four legacy-httpx warnings. Syntax, formatting
+and whitespace checks pass. No new test fixtures, biological claims, SQL/ORM edits,
+live services or new dependencies. Region/service/ORM edits already belonging to
+the feature were retained. Earlier branch/checkpoint sections are historical.
+
+
 ## Latest backend base merge — 2026-10-21
 
 Merged origin/refactor/api at 2497a296 into codex/ask-context-recovery-retries.

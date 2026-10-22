@@ -1,5 +1,23 @@
 # ASK NIAGADS local Codex handoff
 
+## Current task: variants-by-region base merge — 2026-10-21
+
+Continue on feature/variants-by-region in both repos. This supersedes historical
+branch pointers below. Backend merged origin/refactor/api at 72db9575, preserving
+feature-location resolution, regional variant retrieval and ADSP equality-filter
+presentation intents alongside compaction, token recovery and OpenRouter retries.
+The only code conflict was agent instructions; both behaviors were retained.
+
+The remote feature branch advanced to f6ce80dd during the merge; its variant
+record positional_id visibility change was merged without modification.
+
+62 focused offline ASK context/limit/retry/tool checks pass, using recorded gene
+fixtures without API-app/database startup. Syntax, Black/isort and diff checks
+pass. Four SDK legacy-httpx deprecation warnings remain. No DB, ORM or live-model
+validation was attempted. Feature-owned region routes/service/ORM changes were
+preserved, not rewritten. Frontend is being merged from app/oa-api separately.
+
+
 ## Development-base integration — 2026-10-21
 
 Merged refactor/api at 2497a296 into codex/ask-context-recovery-retries. Keep base

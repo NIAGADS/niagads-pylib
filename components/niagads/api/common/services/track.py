@@ -73,6 +73,4 @@ class TrackEndpointService(BaseEndpointService):
             if association["track_stable_id"] == track_id
         ]
 
-        return self._generate_association_lookup_result(
-            associations, summary=summary
-        )
+        return self._generate_association_lookup_result(associations, summary=summary)

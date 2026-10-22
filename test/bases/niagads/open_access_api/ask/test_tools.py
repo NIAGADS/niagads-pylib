@@ -6,13 +6,104 @@ import httpx
 import pytest
 from niagads.api.common.types import ResponseContent
 from niagads.common.types import Entity
-from niagads.open_access_api.ask.contracts import ResultSet
+from niagads.open_access_api.ask.contracts import ResultFilter, ResultSet
 from niagads.open_access_api.ask.planning import QueryIntent, QueryPlan
 from niagads.open_access_api.ask.results import ResultStore
-from niagads.open_access_api.ask.tools import get_gene, get_track, search_resources
-from pydantic_ai import RunContext
+from niagads.open_access_api.ask.tools import (
+    filter_results,
+    get_feature_location,
+    get_gene,
+    get_region_associations,
+    get_region_variants,
+    get_track,
+    search_resources,
+)
+from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+async def test_near_gene_variants_and_filter_reuse_retrieved_page(anyio_backend):
+    rows = [
+        {"id": "6:100:A:T", "is_adsp_variant": True},
+        {"id": "6:101:C:T", "is_adsp_variant": False},
+        {"id": "6:102:G:T", "is_adsp_variant": None},
+        {"id": "6:103:A:C"},
+    ]
+    handler = Mock(
+        side_effect=[
+            httpx.Response(200, json={"chr": "chr6", "start": 90, "end": 200}),
+            httpx.Response(200, json={"data": rows}),
+        ]
+    )
+    store = ResultStore()
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="http://api"
+    ) as client:
+        ctx = RunContext(
+            deps={"client": client, "store": store},
+            model=TestModel(),
+            usage=RunUsage(),
+        )
+        location = await get_feature_location(ctx, "TREM2", flank=10000)
+        result = await get_region_variants(ctx, location["region"])
+        filtered = await filter_results(
+            ctx,
+            result["result_id"],
+            [ResultFilter(field="is_adsp_variant", value=True)],
+        )
+
+    requests = [call.args[0] for call in handler.call_args_list]
+    assert len(requests) == 2
+    assert requests[0].url.path == "/service/feature"
+    assert requests[0].url.params["id"] == "TREM2"
+    assert requests[0].url.params["flank"] == "10000"
+    assert requests[1].url.path == "/record/region/6:90-200/variants"
+    assert requests[1].url.params["content"] == "full"
+    assert store.get(result["result_id"]).rows == rows
+    assert filtered["matching_count"] == 1
+    assert store.presentations[0].filters[0].value is True
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+async def test_result_filter_rejects_unretrieved_field(anyio_backend):
+    store = ResultStore()
+    result = store.add(
+        ResultSet(entity=Entity.VARIANT, annotation=None, rows=[{"id": "v1"}])
+    )
+    ctx = RunContext(deps={"store": store}, model=TestModel(), usage=RunUsage())
+    with pytest.raises(ModelRetry, match="Unknown filter field"):
+        await filter_results(
+            ctx, result.id, [ResultFilter(field="invented", value=True)]
+        )
+    assert not store.presentations
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+@pytest.mark.parametrize("region", ["1:100-200", "chr1:100-200"])
+@pytest.mark.parametrize("content", [ResponseContent.FULL, ResponseContent.SUMMARY])
+async def test_region_associations_use_validated_path(anyio_backend, region, content):
+    handler = Mock(return_value=httpx.Response(200, json={"data": []}))
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="http://api"
+    ) as client:
+        ctx = RunContext(
+            deps={"client": client, "store": ResultStore()},
+            model=TestModel(),
+            usage=RunUsage(),
+        )
+
+        summary = await get_region_associations(ctx, region, content=content)
+
+    request = handler.call_args.args[0]
+    assert request.url.path == "/record/region/1:100-200/associations"
+    assert "region" not in request.url.params
+    assert request.url.params["content"] == content.value
+    assert summary["count"] == 0
 
 
 @pytest.mark.anyio
