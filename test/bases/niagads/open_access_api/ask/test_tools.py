@@ -69,6 +69,46 @@ async def test_near_gene_variants_and_filter_reuse_retrieved_page(anyio_backend)
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("anyio_backend", ["asyncio"])
+async def test_region_variant_cap_warning_survives_filtering(anyio_backend):
+    warning = (
+        "50,000 variants found in region, returning first 5,000. "
+        "Please run windowed queries to fetch across the whole region."
+    )
+    handler = Mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": [{"id": "1:100:A:T", "is_adsp_variant": False}],
+                "pagination": {"total_pages": 1},
+                "message": [warning],
+            },
+        )
+    )
+    store = ResultStore()
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="http://api"
+    ) as client:
+        ctx = RunContext(
+            deps={"client": client, "store": store},
+            model=TestModel(),
+            usage=RunUsage(),
+        )
+        summary = await get_region_variants(ctx, "1:100-200")
+        filtered = await filter_results(
+            ctx,
+            summary["result_id"],
+            [ResultFilter(field="is_adsp_variant", value=True)],
+        )
+
+    assert summary["warnings"] == [warning]
+    assert summary["has_more"] is False
+    assert store.get(summary["result_id"]).warnings == [warning]
+    assert filtered["matching_count"] == 0
+    assert handler.call_count == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
 async def test_result_filter_rejects_unretrieved_field(anyio_backend):
     store = ResultStore()
     result = store.add(

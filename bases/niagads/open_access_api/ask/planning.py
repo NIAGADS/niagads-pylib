@@ -126,6 +126,15 @@ none. Transcript identity/location does not require exons. Genomic proximity or
 associations do not by themselves require transcript/exon details. Use meaning and
 conversation context; never add unrelated annotation collections or invent terms.
 Interpretation does not establish that any requested capability is implemented.
+Associations are annotations; variants are genomic entities that can be annotated,
+not annotations themselves. A request for variant associations asks for association
+evidence, not all variants. Represent associations as an annotation concept in
+selection and keep the gene, variant or region defining scope in location. Do not
+turn a locus name into a request for gene records. For 'Plot all variant
+associations reported for the BIN1 locus, grouped by population and disease or
+neuropathology', use intent retrieve_data, annotation concept associations and
+location kind gene with loc BIN1. Population and disease or neuropathology are
+grouping dimensions here, not selection constraints without requested values.
 """
 
 
@@ -152,7 +161,10 @@ def query_plan_instructions(ctx: RunContext[dict]) -> str:
         "retrieval can proceed. Explain unsupported constraints without claiming "
         "they were applied or substituting metadata for genomic results. "
         "Resource-discovery exclusions, genomic track-data retrieval and "
-        "multi-concept resource filtering are not implemented. Regional variant "
+        "multi-concept resource filtering are not implemented. Gene, variant, "
+        "transcript and regional association retrieval, regional variant "
         "retrieval and frontend equality filters on retrieved scalar fields are "
-        "available.\n" + json.dumps(plan.model_dump(mode="json"))
+        "available. Associations are annotations; regional variant records are "
+        "not a substitute for requested association evidence.\n"
+        + json.dumps(plan.model_dump(mode="json"))
     )

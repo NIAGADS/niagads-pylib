@@ -122,6 +122,12 @@ async def get_feature_location(
 async def get_region_variants(ctx: RunContext[dict], region: str) -> dict:
     """Retrieve variant records in a resolved span, including ADSP flags.
 
+    Use for variant inventories, not association annotations or association plots.
+    Retrieve association evidence with the association tools instead.
+    Each region must span fewer than 100,000 bp. At most the first 5,000 variants
+    ordered by position are retrieved. Preserve truncation warnings; filtering
+    these records does not search the omitted variants.
+
     Args:
         ctx (RunContext[dict]): Agent context with the API client and result store.
         region (str): Region in chrN:start-end or N:start-end format.
@@ -177,6 +183,8 @@ async def get_gene_associations(
 ) -> dict:
     """Retrieve gene association evidence, including reported phenotype/trait annotations.
 
+    Use for variant associations at a named gene or locus, including locus plots.
+    Associations are annotations, distinct from an inventory of nearby variants.
     Both full and summary content expose trait terms and source tracks to the agent.
     Summary content retains the API's association counts per track.
     """
@@ -252,7 +260,11 @@ async def get_region_associations(
         ResponseContent.FULL, ResponseContent.SUMMARY
     ] = ResponseContent.FULL,
 ) -> dict:
-    """Request regional associations or per-track counts."""
+    """Retrieve association annotations in a region, not a variant inventory.
+
+    Use full content for association plots; summary returns per-track counts.
+    The region must span fewer than 100,000 bp, including both endpoints.
+    """
     operation = (
         "region_associations_summary"
         if content == ResponseContent.SUMMARY

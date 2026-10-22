@@ -129,7 +129,11 @@ async def retrieve(
                     if row.get("track") or row.get("id") or row.get("source_id")
                 )
             ),
-            warnings=(
+            warnings=[
+                message if isinstance(message, str) else json.dumps(message)
+                for message in payload.get("message") or []
+            ]
+            + (
                 ["Ranked semantic results are candidates and are not exhaustive."]
                 if semantic_search
                 else []
