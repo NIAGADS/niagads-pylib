@@ -63,6 +63,21 @@ docker run -d \
   oaa-service:2.0.0
 ```
 
+prod
+
+```bash
+docker run -d \
+  --name oaa-service \
+  --restart always \
+  --network oa-network \
+  --add-host host.docker.internal:host-gateway \
+  --env-file prod.runtime.env \
+  -p 8000:8000 \
+  oaa-service:2.0.0
+```
+
+> LEGACY NOTE for the cache: need to set user in compose b/c of permissions issue; may not be an issue on new servers
+
 Run this after starting the cache, which creates `oa-network`. Use the image
 version matching `API_VERSION` in `.env`, and change the left side of
 `-p 8000:8000` to your desired host port. For production, pass
