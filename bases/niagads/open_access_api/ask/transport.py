@@ -32,9 +32,6 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     ErrorChunk,
     FinishChunk,
     StartChunk,
-    TextDeltaChunk,
-    TextEndChunk,
-    TextStartChunk,
 )
 from pydantic_ai.usage import RunUsage, UsageLimits
 from starlette.responses import Response, StreamingResponse
@@ -255,23 +252,6 @@ async def ask(
             if not message_started:
                 yield StartChunk(message_id=str(uuid4()))
                 message_started = True
-            count = sum(len(result.rows) for result in store.results.values())
-            retrieved = (
-                f"{count} loaded record{'s have' if count != 1 else ' has'} been preserved."
-                if count
-                else "No records were retrieved."
-            )
-            text_id = str(uuid4())
-            yield TextStartChunk(id=text_id)
-            yield TextDeltaChunk(
-                id=text_id,
-                delta=(
-                    "\n\nToken limit reached before I finished. "
-                    f"{retrieved} Would you like to narrow the request "
-                    "to one gene, dataset or region?"
-                ),
-            )
-            yield TextEndChunk(id=text_id)
             async for event in complete(None):
                 yield event
 

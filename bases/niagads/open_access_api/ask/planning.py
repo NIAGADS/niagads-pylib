@@ -9,7 +9,7 @@ from niagads.common.types import Entity
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import GenomeBuild
 from pydantic import ConfigDict, Field
-from pydantic_ai import RunContext
+from pydantic_ai import ModelRetry, RunContext
 
 
 class QueryIntent(CaseInsensitiveEnum):
@@ -94,9 +94,20 @@ class QueryPlan(CustomBaseModel):
         default_factory=list, max_length=4
     )
     gene_evidence: list[GeneEvidence] = Field(default_factory=list, max_length=6)
+    tool_names: list[Annotated[str, Field(min_length=1, max_length=80)]] | None = Field(
+        default=None, max_length=20, exclude=True
+    )
 
 
 PLANNING_INSTRUCTIONS = """Planning is optional; clear requests can retrieve directly.
+For multi-step work, use tool_names in record_query_plan to select only tools
+needed for the whole request, including dependencies and presentation. Choose
+from registered tool names, not biological identifiers. The server then sends
+only those tool definitions on subsequent calls. record_query_plan and
+clarify_request always remain available. Update tool_names if new evidence
+requires another capability; null restores the full catalog. Do not narrow
+the user's request to match a selected tool set. Selecting tools is optional
+and must not add a planning call to a request that needs no interpretation.
 Use record_query_plan when decomposition of concepts, compound AND/OR constraints,
 exclusions or scope materially helps. Resolve identifiers through tools first when
 actual records are needed to interpret the next action. Preserve the whole goal,
@@ -129,13 +140,21 @@ async def record_query_plan(ctx: RunContext[dict], interpretation: QueryPlan) ->
     function runs. Validation exhaustion retains the native error and any results
     already retrieved; it does not fabricate a plan or silently switch strategies.
     """
+    if interpretation.tool_names is not None:
+        catalog = ctx.deps["_ask_tool_catalog"]
+        unknown = set(interpretation.tool_names) - catalog
+        if unknown:
+            raise ModelRetry("Unknown tool names: " + ", ".join(sorted(unknown)))
     ctx.deps["query_plan"] = interpretation
     if interpretation.exclusions:
         ctx.deps["warnings"].append("Requested exclusions have not been applied.")
     report_plan = ctx.deps.get("report_plan")
     if report_plan is not None:
         report_plan(interpretation)
-    return {
+    result = {
         "status": "recorded",
         "interpretation": interpretation.model_dump(mode="json"),
     }
+    if interpretation.tool_names is not None:
+        result["tool_names"] = interpretation.tool_names
+    return result

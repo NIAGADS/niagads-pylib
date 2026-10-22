@@ -11,6 +11,10 @@
 
 ## ASK NIAGADS alpha
 
+* Investigate cumulative token-limit exhaustion after successful retrieval and
+  presentation in multi-step ASK queries using Logfire. Compare per-call usage,
+  tool-definition payloads and the post-presentation continuation. Token-limit
+  notices are temporarily hidden in the UI; server diagnostics remain available.
 * Defer pagination handling for ASK regional variant and association queries.
   Send the retrieved API page to the tables for now; add pagination using the
   planned approach later.
