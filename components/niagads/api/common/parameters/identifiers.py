@@ -5,6 +5,7 @@ from niagads.api.common.parameters.validators import parse_comma_separated_list
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.genomic.features.types import GenomicFeatureType
+from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.exceptions.core import ValidationError
 
 
@@ -41,12 +42,19 @@ async def multi_track_id_query_param(
 
 async def region_id(
     region: str = Path(
-        description="genomic region: chrN:start-end or N:start-end, where N is the chromosome number"
+        description=(
+            "Genomic region: chrN:start-end or N:start-end, where N is the "
+            "chromosome number. The span must be less than 100,000 bp."
+        )
     ),
 ):
-    return GenomicFeature(
+    feature = GenomicFeature(
         feature_id=sanitize(region), feature_type=GenomicFeatureType.REGION
     )
+    location = OneBasedGenomicRegion.from_region_id(feature.feature_id)
+    if location.end - location.start + 1 >= 100_000:
+        raise ValidationError("Region span must be less than 100,000 bp.")
+    return feature
 
 
 async def variant_id(

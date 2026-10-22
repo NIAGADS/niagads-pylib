@@ -581,17 +581,24 @@ class Variant(
 
     @classmethod
     async def retrieve_records_by_region(
-        cls, session: AsyncSession, region: OneBasedGenomicRegion
-    ) -> RecordRetrievalResult:
+        cls,
+        session: AsyncSession,
+        region: OneBasedGenomicRegion,
+        *,
+        limit: Optional[int] = None,
+        counts_only: bool = False,
+    ) -> RecordRetrievalResult | int:
         """Fetch full variant records overlapping a genomic region.
 
         Args:
             session (AsyncSession): Active asynchronous database session.
             region (OneBasedGenomicRegion): One-based inclusive region to query.
+            limit (Optional[int]): Maximum records to return, ordered by position.
+            counts_only (bool): Return the total count without applying the limit.
 
         Returns:
-            RecordRetrievalResult: Mapping of the region identifier to matching
-                full records.
+            RecordRetrievalResult | int: Mapping of the region identifier to
+                matching full records, or the total number of matching variants.
         """
         bin_index = await IntervalBin.find_bin_index(
             session, region.chromosome, region.range
@@ -609,11 +616,18 @@ class Variant(
                 cls.span.op("&&")(region.range),
             ),
         )
+        if counts_only:
+            count_query = select(func.count()).select_from(
+                region_select.with_only_columns(cls.variant_id).subquery()
+            )
+            return (await session.execute(count_query)).scalar_one()
+
+        region_select = region_select.order_by(cls.position, cls.variant_id)
+        if limit is not None:
+            region_select = region_select.limit(limit)
+
         mappings = {region_id: []}
-        for row in await cls._execute_lookup(
-            session, lookup_values, region_select.subquery("region_matches")
-        ):
-            if row["record"] is not None:
-                mappings[region_id].append(row["record"])
+        for row in (await session.execute(region_select)).mappings():
+            mappings[region_id].append(row["record"])
 
         return mappings

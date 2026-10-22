@@ -79,12 +79,18 @@ class BaseEndpointService(ComponentBaseMixin):
 
         return response
 
-    async def generate_response(self, result: Any, from_cache: bool = False):
+    async def generate_response(
+        self,
+        result: Any,
+        from_cache: bool = False,
+        message: list[Union[str, dict]] | None = None,
+    ):
         """Build a response model and cache it when it is newly generated.
 
         Args:
             result: Result data, or an existing response when ``from_cache`` is true.
             from_cache: Whether ``result`` is already a response model from the cache.
+            message: Informational or warning messages qualifying the response.
 
         Returns:
             The response model.
@@ -98,6 +104,7 @@ class BaseEndpointService(ComponentBaseMixin):
         if from_cache:  # use cached data & pagination state
             paged_result = result["data"]
             pagination_state = result["pagination"]
+            message = result.get("message")
         else:
             self._context.request_data.update_parameters(self._parameters)
             self._initialize_pagination_service(len(result))
@@ -118,7 +125,7 @@ class BaseEndpointService(ComponentBaseMixin):
 
         await self._context.cache_manager.set(
             self._context.cache_key.encrypt(),
-            {"data": paged_result, "pagination": pagination_state},
+            {"data": paged_result, "pagination": pagination_state, "message": message},
             namespace=self._context.cache_key.namespace,
         )
 
@@ -126,6 +133,7 @@ class BaseEndpointService(ComponentBaseMixin):
             request=self._context.request_data,
             pagination=pagination_state,
             data=paged_result,
+            message=message,
         )
 
     def _generate_association_lookup_result(

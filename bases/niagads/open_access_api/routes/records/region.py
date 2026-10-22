@@ -20,6 +20,8 @@ from niagads.api.common.types import ResponseContent, ResponseFormat
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.open_access_api.dependencies import OpenAccessEndpointContext
 
+REGION_VARIANT_LIMIT = 5_000
+
 router = APIRouter(prefix="/record/region", tags=["Region"])
 
 
@@ -64,7 +66,10 @@ async def get_region_associations(
 @router.get(
     "/{region}/variants",
     summary="Get region variants",
-    description=("Retrieve all variants in a genomic span."),
+    description=(
+        "Retrieve up to 5,000 variants ordered by position in a genomic span "
+        "of less than 100,000 bp. Query smaller windows to fetch the whole region."
+    ),
     response_description="Regional variant records.",
     operation_id="getRegionVariants",
     response_model=Union[RecordResponse[Variant], RecordResponse[VariantBrief]],
@@ -89,10 +94,22 @@ async def get_region_variants(
         ),
     )
 
+    message = None
     result = await service.get_cached_response()
     from_cache = True
     if not result:
-        result = await service.fetch_variants(region.feature_id)
+        count = await service.fetch_variants(region.feature_id, counts_only=True)
+        result = await service.fetch_variants(
+            region.feature_id, limit=REGION_VARIANT_LIMIT
+        )
+        if count > REGION_VARIANT_LIMIT:
+            message = [
+                f"{count:,} variants found in region, returning first "
+                f"{REGION_VARIANT_LIMIT:,}. Please run windowed queries to "
+                "fetch across the whole region."
+            ]
         from_cache = False
 
-    return await service.generate_response(result, from_cache=from_cache)
+    return await service.generate_response(
+        result, from_cache=from_cache, message=message
+    )
