@@ -4,7 +4,6 @@ import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
-from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -12,7 +11,6 @@ from fastapi import FastAPI
 from niagads.open_access_api.ask import retries, transport
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
-from niagads.open_access_api.ask.planning import QueryPlan
 from niagads.open_access_api.ask.provider import build_model
 from niagads.open_access_api.ask.retries import RetryingModel
 from pydantic_ai.exceptions import ModelHTTPError
@@ -279,18 +277,13 @@ def test_backoff_pauses_active_deadline():
     asyncio.run(run())
 
 
-def test_planner_retry_status_is_streamed_before_plan_and_cleared(monkeypatch):
+def test_native_request_retry_status_is_streamed_and_cleared():
     app = FastAPI()
     app.include_router(transport.router)
     settings = AskSettings(feedback_enable=False)
-    agent = build_agent(
-        settings, model=FunctionModel(stream_function=protocol_response)
-    )
-    app.dependency_overrides[transport.get_agent] = lambda: agent
-    app.dependency_overrides[transport.get_settings] = lambda: settings
     calls = []
 
-    async def planning_call():
+    async def protocol(messages, info):
         calls.append(True)
         if len(calls) == 1:
             raise ModelHTTPError(
@@ -299,14 +292,13 @@ def test_planner_retry_status_is_streamed_before_plan_and_cleared(monkeypatch):
                 body="Protocol busy",
                 headers={"retry-after": "0"},
             )
-        return SimpleNamespace(output=QueryPlan(intent="conversation"))
+        yield "Protocol response."
 
-    async def plan(*args, **kwargs):
-        return await retries.call_with_retry(planning_call)
-
-    monkeypatch.setattr(
-        transport, "build_query_planner", lambda model: SimpleNamespace(run=plan)
+    agent = build_agent(
+        settings, model=RetryingModel(FunctionModel(stream_function=protocol))
     )
+    app.dependency_overrides[transport.get_agent] = lambda: agent
+    app.dependency_overrides[transport.get_settings] = lambda: settings
 
     async def run():
         async with httpx.AsyncClient(
@@ -334,10 +326,8 @@ def test_planner_retry_status_is_streamed_before_plan_and_cleared(monkeypatch):
         event["data"]["state"] if event["data"] else None for event in statuses
     ] == ["requesting", "waiting", "retrying", None]
     assert all(event["transient"] for event in statuses)
-    plan_index = next(
-        i for i, event in enumerate(events) if event["type"] == "data-niagads-plan"
-    )
-    assert all(events.index(event) < plan_index for event in statuses)
+    assert len(calls) == 2
+    assert not [event for event in events if event["type"] == "data-niagads-plan"]
     assert not [event for event in events if event["type"] == "error"]
     assert response.text.rstrip().endswith("data: [DONE]")
 

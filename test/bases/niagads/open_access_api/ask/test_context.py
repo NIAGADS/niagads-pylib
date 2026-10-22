@@ -153,7 +153,9 @@ def working_context(gene_result):
         deps={
             "store": store,
             "query_plan": QueryPlan(
-                intent="lookup_record", gene_evidence=["functional_annotation"]
+                goal="Protocol interpretation",
+                intent="lookup_record",
+                gene_evidence=["functional_annotation"],
             ),
             "issues": [],
             "warnings": [],

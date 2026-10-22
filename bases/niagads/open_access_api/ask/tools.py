@@ -12,6 +12,7 @@ from niagads.open_access_api.ask.contracts import (
     ResultFilter,
 )
 from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
+from niagads.open_access_api.ask.planning import GeneEvidence, QueryClarification
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
@@ -22,14 +23,17 @@ async def _execute(
     parameters: dict,
     *,
     transcript: str | None = None,
+    evidence_fields: list[GeneEvidence] | None = None,
 ) -> dict:
     """Retrieve through the existing API and expose a compact evidence summary."""
-    plan = ctx.deps.get("query_plan")
+    if evidence_fields is None:
+        plan = ctx.deps.get("query_plan")
+        evidence_fields = plan.gene_evidence if plan else []
     result = await retrieve(ctx.deps["client"], operation, parameters)
     ctx.deps["store"].add(result)
     return ctx.deps["store"].summary(
         result.id,
-        gene_evidence=plan.gene_evidence if plan else (),
+        gene_evidence=evidence_fields,
         transcript=transcript,
     )
 
@@ -71,6 +75,7 @@ async def get_gene(
     content: Literal[
         ResponseContent.FULL, ResponseContent.SUMMARY
     ] = ResponseContent.SUMMARY,
+    evidence_fields: Annotated[list[GeneEvidence] | None, Field(max_length=6)] = None,
 ) -> dict:
     """Look up a gene; request full content for needed annotations or curated lists.
 
@@ -78,12 +83,16 @@ async def get_gene(
         ctx (RunContext[dict]): Agent context with the API client and result store.
         gene (str): Gene identifier or symbol.
         content (ResponseContent): Summary or full gene record content.
+        evidence_fields (list[GeneEvidence] | None): Needed annotations, selectable
+            as evidence emerges; omitted uses the initial interpretation.
 
     Returns:
         dict: Compact record evidence, or semantic candidates if no record matches.
     """
     operation = "gene_full" if content == ResponseContent.FULL else "gene"
-    summary = await _execute(ctx, operation, {"gene": gene})
+    summary = await _execute(
+        ctx, operation, {"gene": gene}, evidence_fields=evidence_fields
+    )
     if summary["count"] == 0:
         return await search_resources(ctx, gene, Entity.GENE)
     return summary
@@ -163,13 +172,39 @@ async def get_track_data(
 
 
 async def get_gene_structure(
-    ctx: RunContext[dict], gene: str, transcript: str | None = None
+    ctx: RunContext[dict],
+    gene: str,
+    transcript: str | None = None,
+    evidence_fields: Annotated[list[GeneEvidence] | None, Field(max_length=6)] = None,
 ) -> dict:
-    """Fetch gene structure; optionally focus the model summary on an exact transcript.
+    """Return transcript identities/spans; request exons only when needed.
 
-    Transcript/exon projection follows semantic planning; stored records stay intact.
+    Per-call evidence overrides the preliminary interpretation. Stored records
+    stay intact, including transcripts beyond the compact model preview.
     """
-    return await _execute(ctx, "gene_structure", {"gene": gene}, transcript=transcript)
+    if evidence_fields is None:
+        plan = ctx.deps.get("query_plan")
+        evidence_fields = list(plan.gene_evidence) if plan else []
+        if GeneEvidence.TRANSCRIPTS not in evidence_fields:
+            evidence_fields.append(GeneEvidence.TRANSCRIPTS)
+    return await _execute(
+        ctx,
+        "gene_structure",
+        {"gene": gene},
+        transcript=transcript,
+        evidence_fields=evidence_fields,
+    )
+
+
+async def clarify_request(
+    ctx: RunContext[dict], clarification: QueryClarification
+) -> dict:
+    """Record a material question that returned evidence cannot resolve.
+
+    Keep retrieved results for display while pausing only the dependent path.
+    """
+    ctx.deps["failures"].append("clarification")
+    return {"status": "clarification", **clarification.model_dump(mode="json")}
 
 
 async def get_gene_associations(
@@ -186,7 +221,8 @@ async def get_gene_associations(
     Use for variant associations at a named gene or locus, including locus plots.
     Associations are annotations, distinct from an inventory of nearby variants.
     Both full and summary content expose trait terms and source tracks to the agent.
-    Summary content retains the API's association counts per track.
+    Summary content retains the API's association counts per track. Use returned
+    track IDs with get_track for associated dataset metadata.
     """
     operation = (
         "gene_associations_summary"

@@ -3,7 +3,6 @@
 import asyncio
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -14,12 +13,12 @@ from niagads.open_access_api.ask import tools, transport
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.contracts import ResultSet
-from niagads.open_access_api.ask.planning import QueryPlan
 from pydantic_ai.models.function import DeltaToolCall, FunctionModel
 
 
 @pytest.mark.parametrize(
-    "stage", ["planner", "input", "output", "presentation", "requests", "other"]
+    "stage",
+    ["before_retrieval", "input", "output", "presentation", "requests", "other"],
 )
 def test_interrupted_stream_preserves_records_and_native_diagnostics(
     stage, monkeypatch
@@ -36,18 +35,21 @@ def test_interrupted_stream_preserves_records_and_native_diagnostics(
     calls = []
     run = {}
 
-    async def plan(*args, usage, usage_limits):
+    native_stream = transport.VercelAIAdapter.run_stream_native
+
+    def start_run(adapter, *, usage, usage_limits, **kwargs):
         run.update(usage=usage, limits=usage_limits)
-        if stage == "planner":
-            usage.input_tokens = usage_limits.input_tokens_limit + 1
-            usage_limits.check_tokens(usage)
-        return SimpleNamespace(output=QueryPlan(intent="lookup_record"))
+        return native_stream(adapter, usage=usage, usage_limits=usage_limits, **kwargs)
 
     async def retrieve(*args):
         return retrieved
 
     async def protocol(messages, info):
         calls.append(messages)
+        if stage == "before_retrieval":
+            usage, limits = run["usage"], run["limits"]
+            usage.input_tokens = limits.input_tokens_limit + 1
+            limits.check_tokens(usage)
         if len(calls) == 1:
             yield {
                 0: DeltaToolCall(
@@ -87,9 +89,7 @@ def test_interrupted_stream_preserves_records_and_native_diagnostics(
     app.include_router(transport.router)
     app.dependency_overrides[transport.get_agent] = lambda: agent
     app.dependency_overrides[transport.get_settings] = lambda: settings
-    monkeypatch.setattr(
-        transport, "build_query_planner", lambda model: SimpleNamespace(run=plan)
-    )
+    monkeypatch.setattr(transport.VercelAIAdapter, "run_stream_native", start_run)
     monkeypatch.setattr(tools, "retrieve", retrieve)
 
     async def request():
@@ -122,10 +122,10 @@ def test_interrupted_stream_preserves_records_and_native_diagnostics(
     assert len(envelopes) == 1
     envelope = envelopes[0]
     assert envelope["results"] == (
-        [] if stage == "planner" else [retrieved.model_dump(mode="json")]
+        [] if stage == "before_retrieval" else [retrieved.model_dump(mode="json")]
     )
     assert len(calls) == (
-        0 if stage == "planner" else 3 if stage == "presentation" else 2
+        1 if stage == "before_retrieval" else 3 if stage == "presentation" else 2
     )
     if stage == "presentation":
         assert envelope["presentation"][0]["result_id"] == retrieved.id
@@ -146,7 +146,7 @@ def test_interrupted_stream_preserves_records_and_native_diagnostics(
     text = "".join(event["delta"] for event in events if event["type"] == "text-delta")
     assert "Token limit reached before I finished" in text
     assert "narrow" in text.lower()
-    assert ("No records" if stage == "planner" else "1 loaded record") in text
+    assert ("No records" if stage == "before_retrieval" else "1 loaded record") in text
     assert len([event for event in events if event["type"] == "start"]) == 1
     assert [event for event in events if event["type"] == "finish"][-1][
         "finishReason"

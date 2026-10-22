@@ -16,35 +16,56 @@ added; live model behavior remains unvalidated.
 
 ## Structured query interpretation
 
-ASK first calls the configured `ASK_MODEL` with PydanticAI structured output to
-produce a `QueryPlan`. It preserves intent, entity, positive concepts with nested
-AND/OR groups, raw gene/span/variant `loc`, nullable flank/assembly, clarifications,
-and deferred exclusions. It does not resolve ontology IDs or coordinates, invent
-missing distances, or treat an interpreted concept as retrieved evidence.
+ASK uses one PydanticAI retrieval agent. Clear requests retrieve directly. When
+concept decomposition or scope materially benefits, it can call record_query_plan
+with a fixed, bounded QueryPlan schema, before or after resolving identifiers.
+There is no mandatory interpretation call before retrieval. Optional planning
+records a short goal, intent, flat concepts/constraints and necessary scope or
+evidence hints, not an exhaustive workflow. It is not retrieved evidence.
 
-The planner and evidence agent reuse the same model and share existing request,
-token and deadline budgets, including retries. Planning adds at least one model
-request to a conversation turn. No new model setting or provider is introduced.
-Invalid planner output or provider failure propagates through existing diagnostics;
-there is no fallback to unplanned retrieval. Existing embedding settings are unchanged.
+Each native tool return determines the next action. Gene/structure tools select
+per-call evidence_fields so dependencies discovered during execution are supported.
+Structure summaries expose transcript IDs/spans; exons remain opt-in. Full records
+stay in ResultStore. Available gene-annotation requests cover both full gene
+annotation and gene associations. Returned source track IDs identify associated
+datasets; get_track supplies their metadata when needed. Semantic candidates do
+not establish an association. Empty associations do not erase gene evidence.
 
-The UI receives a `data-niagads-plan` part and shows a validated JSON disclosure
-separate from result tables. Browser-supplied plan/tool parts are discarded;
-plans are regenerated from sanitized conversation text on each turn. Clarifications
-pause API retrieval. Exclusions remain explicitly unsupported and also pause
-retrieval rather than silently weaken the request. The `get_track_data` tool is
-a placeholder taking `track_ids`, `loc`, and nullable `flank`; it returns an
-unsupported notice without an HTTP call. This location-aware agent tool is
-distinct from the dashboard manual fetch, which uses the existing parameter-free
-`/record/track/{track_id}/data` route.
+The native loop retains request/tool/token/deadline budgets, retry handling and
+max_tokens=2000. The optional planning call uses the same tool argument validation
+as retrieval: invalid inputs get the existing bounded native retry, then an honest
+error if exhausted. No fabricated default interpretation, JSON repair or silent
+fallback occurs. Already retrieved results remain available on failure.
 
-Direct `/query/*` endpoints remain semantic-search primitives. This change does
-not implement multi-concept score fusion, AND/OR filtering of retrieved records,
-ontology expansion, cancer exclusions or genomic data endpoints. Semantic search
-hits remain candidates, not proof that every plan requirement was met.
+`data-niagads-plan` is emitted only for a successfully recorded interpretation,
+including in feedback; clear requests need no plan event. The frontend mirrors its strict schema; deploy both repos together.
+Browser-supplied plan/tool parts are discarded. Each turn interprets sanitized
+text and re-fetches evidence when needed; browser dashboards are not model memory.
 
-Synthetic planning tests were removed at the user's request. Live interpretation
-quality and model/stream behavior have not been verified by schema generation.
+Only materially ambiguous dependent actions need clarification. Available tools
+should resolve inputs first; independent work can proceed. `clarify_request`
+records the existing clarification outcome and preserves retrieved results. The
+agent then asks a brief question rather than silently choosing a transcript or
+inventing scope. Unsupported retrieval must be reported without substituting
+metadata for genomic data. The location-aware `get_track_data` agent tool remains
+an honest placeholder with no HTTP call; it is distinct from the dashboard's
+manual parameter-free `/record/track/{track_id}/data` fetch.
+
+Direct `/query/*` primitives, embeddings and retrieval behavior are unchanged.
+This refactor does not add multi-concept score fusion, ontology expansion or
+resource exclusions. Semantic matches remain candidates. Existing feature-location,
+region-variant and region-association routes and flank conventions are preserved.
+ADSP filtering remains a frontend equality filter on already retrieved records;
+regional variants retain table presentation even for one record. Paging remains
+in the ASK TODO; do not fetch extra pages or add paging commentary.
+
+Focused protocol regressions use recorded APOE evidence and simulated SDK exchanges,
+not live LLM reasoning. The annotation regression covers the real /ask streaming
+boundary: direct gene/association retrieval without a planner, optional planning
+after resolution, and invalid planning preserving earlier evidence. They cover dependent calls, exact transcript scope,
+clarification, unsupported capabilities, per-call evidence and bounded termination.
+They were added but not executed under AGENTS.md's explicit-request test rule.
+Static checks cannot establish live interpretation quality or grounding.
 
 The existing application exposes `POST /ask`. One PydanticAI agent uses fixed API
 GET tools. The API query service generates embeddings through OpenRouter using

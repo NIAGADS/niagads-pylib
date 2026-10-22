@@ -280,6 +280,7 @@ async def test_plan_limitations_do_not_block_independent_retrieval(
     anyio_backend, needs_clarification, has_exclusions
 ):
     plan = QueryPlan(
+        goal="Protocol interpretation",
         intent=QueryIntent.DISCOVER_RESOURCES,
         clarifications=(
             [{"field": "location", "question": "Which region?"}]
