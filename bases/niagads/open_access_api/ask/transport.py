@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
-from niagads.open_access_api.ask.contracts import AskResponse
+from niagads.open_access_api.ask.contracts import AskIssue, AskResponse
 from niagads.open_access_api.ask.feedback import (
     AskFeedback,
     create_feedback_reference,
@@ -20,12 +20,40 @@ from niagads.open_access_api.ask.feedback import (
 )
 from niagads.open_access_api.ask.planning import build_query_planner
 from niagads.open_access_api.ask.results import ResultStore
+from niagads.open_access_api.ask.retries import (
+    RetryStatus,
+    retry_deadline,
+    retry_status_callback,
+)
+from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.ui.vercel_ai import VercelAIAdapter
-from pydantic_ai.ui.vercel_ai.response_types import DataChunk, ErrorChunk, StartChunk
+from pydantic_ai.ui.vercel_ai.response_types import (
+    DataChunk,
+    ErrorChunk,
+    FinishChunk,
+    StartChunk,
+    TextDeltaChunk,
+    TextEndChunk,
+    TextStartChunk,
+)
 from pydantic_ai.usage import RunUsage, UsageLimits
 from starlette.responses import Response, StreamingResponse
 
 router = APIRouter(tags=["ASK NIAGADS"])
+
+
+def token_limit_exceeded(
+    error: Exception, usage: RunUsage, limits: UsageLimits
+) -> bool:
+    """Recognize native SDK token exhaustion without relabeling other usage errors."""
+    return isinstance(error, UsageLimitExceeded) and any(
+        limit is not None and consumed > limit
+        for consumed, limit in (
+            (usage.input_tokens, limits.input_tokens_limit),
+            (usage.output_tokens, limits.output_tokens_limit),
+            (usage.total_tokens, limits.total_tokens_limit),
+        )
+    )
 
 
 def sanitize_history(payload: dict) -> dict:
@@ -157,6 +185,7 @@ async def ask(
     deps = {"store": store, "spec": spec, "warnings": [], "failures": [], "issues": []}
 
     result_sent = False
+    token_limit_error: UsageLimitExceeded | None = None
     feedback_reference = None
     feedback_secret = getattr(request.app.state, "ask_feedback_signing_secret", None)
     feedback_enabled = bool(
@@ -169,19 +198,18 @@ async def ask(
         nonlocal result_sent
         if result_sent:
             return
-        status = (
-            "retrieval_error"
-            if failed
-            else (
-                deps["failures"][0]
-                if deps["failures"]
-                else (
-                    "empty"
-                    if store.results and not any(r.rows for r in store.results.values())
-                    else "ok"
-                )
-            )
-        )
+        if token_limit_error is not None:
+            status = "token_limit"
+        elif failed:
+            status = "retrieval_error"
+        elif deps["failures"]:
+            status = deps["failures"][0]
+        elif store.results and not any(
+            result.rows for result in store.results.values()
+        ):
+            status = "empty"
+        else:
+            status = "ok"
         envelope = AskResponse(
             feedback_reference=feedback_reference,
             status=status,
@@ -197,8 +225,8 @@ async def ask(
             type="data-niagads-result", data=envelope.model_dump(mode="json")
         )
 
-    async def stream():
-        nonlocal feedback_reference
+    async def generate_stream():
+        nonlocal feedback_reference, token_limit_error
         message_started = False
         headers = {
             name: request.headers[name]
@@ -206,13 +234,55 @@ async def ask(
             if name in request.headers
         }
         headers.setdefault("x-request-id", str(uuid4()))
+        usage = RunUsage()
+        usage_limits = UsageLimits(
+            request_limit=settings.model_requests,
+            tool_calls_limit=settings.tool_calls,
+            input_tokens_limit=20000,
+            output_tokens_limit=12000,
+        )
+
+        async def recover_token_limit():
+            nonlocal message_started
+            deps["issues"].append(
+                AskIssue(
+                    code="usage_limit",
+                    operation="assistant",
+                    message=f"{type(token_limit_error).__name__}: {token_limit_error}",
+                    request_id=headers["x-request-id"],
+                )
+            )
+            if not message_started:
+                yield StartChunk(message_id=str(uuid4()))
+                message_started = True
+            count = sum(len(result.rows) for result in store.results.values())
+            retrieved = (
+                f"{count} loaded record{'s have' if count != 1 else ' has'} been preserved."
+                if count
+                else "No records were retrieved."
+            )
+            text_id = str(uuid4())
+            yield TextStartChunk(id=text_id)
+            yield TextDeltaChunk(
+                id=text_id,
+                delta=(
+                    "\n\nToken limit reached before I finished. "
+                    f"{retrieved} Would you like to narrow the request "
+                    "to one gene, dataset or region?"
+                ),
+            )
+            yield TextEndChunk(id=text_id)
+            async for event in complete(None):
+                yield event
+
         with (
             logfire.span("ASK NIAGADS response") if feedback_enabled else nullcontext()
         ):
             if feedback_enabled:
                 feedback_reference = create_feedback_reference(feedback_secret)
             try:
-                async with asyncio.timeout(settings.deadline):
+                async with asyncio.timeout(settings.deadline) as deadline:
+                    retry_deadline.set(deadline)
                     async with httpx.AsyncClient(
                         transport=transport,
                         base_url="http://niagads.internal",
@@ -220,13 +290,6 @@ async def ask(
                         timeout=settings.api_timeout,
                     ) as client:
                         deps["client"] = client
-                        usage = RunUsage()
-                        usage_limits = UsageLimits(
-                            request_limit=settings.model_requests,
-                            tool_calls_limit=settings.tool_calls,
-                            input_tokens_limit=20000,
-                            output_tokens_limit=12000,
-                        )
                         planned = await build_query_planner(agent.model).run(
                             json.dumps(clean["messages"]),
                             usage=usage,
@@ -244,10 +307,13 @@ async def ask(
                         )
 
                         async def observed_events():
+                            nonlocal token_limit_error
                             try:
                                 async for event in native_events:
                                     yield event
-                            except Exception:
+                            except Exception as exc:
+                                if token_limit_exceeded(exc, usage, usage_limits):
+                                    token_limit_error = exc
                                 logging.getLogger(
                                     "uvicorn.error.niagads.ask"
                                 ).exception(
@@ -270,6 +336,10 @@ async def ask(
                                 if isinstance(event, StartChunk):
                                     message_started = True
                                 if isinstance(event, ErrorChunk):
+                                    if token_limit_error is not None:
+                                        async for recovered in recover_token_limit():
+                                            yield recovered
+                                        continue
                                     if not message_started and feedback_reference:
                                         yield StartChunk(message_id=str(uuid4()))
                                         message_started = True
@@ -281,6 +351,13 @@ async def ask(
                                     event.error_text += (
                                         f" Reference: {headers['x-request-id']}."
                                     )
+                                if (
+                                    isinstance(event, FinishChunk)
+                                    and token_limit_error is not None
+                                ):
+                                    event = event.model_copy(
+                                        update={"finish_reason": "length"}
+                                    )
                                 yield event
 
                         async for event in adapter.encode_stream(stream_events()):
@@ -291,6 +368,14 @@ async def ask(
                 logging.getLogger("uvicorn.error.niagads.ask").exception(
                     "ASK stream failed request_id=%s", headers["x-request-id"]
                 )
+                if token_limit_exceeded(exc, usage, usage_limits):
+                    token_limit_error = exc
+                    async for event in recover_token_limit():
+                        yield "data: " + event.encode(7) + "\n\n"
+                    event = FinishChunk(finish_reason="length")
+                    yield "data: " + event.encode(7) + "\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
                 if not message_started and feedback_reference:
                     event = StartChunk(message_id=str(uuid4()))
                     yield "data: " + event.encode(sdk_version=7) + "\n\n"
@@ -305,6 +390,51 @@ async def ask(
                 )
                 yield "data: " + event.encode(sdk_version=7) + "\n\n"
                 yield "data: [DONE]\n\n"
+
+    async def stream():
+        # Planner status must reach the browser before planning finishes.
+        queue: asyncio.Queue[str | Exception | None] = asyncio.Queue()
+
+        def report_status(status: RetryStatus | None):
+            # DataChunk.encode excludes None; clearing needs an explicit JSON null.
+            event = {
+                "type": "data-niagads-model-status",
+                "data": (
+                    status.model_dump(mode="json", by_alias=True) if status else None
+                ),
+                "transient": True,
+            }
+            queue.put_nowait("data: " + json.dumps(event) + "\n\n")
+
+        async def produce():
+            status_token = retry_status_callback.set(report_status)
+            deadline_token = retry_deadline.set(None)
+            try:
+                async for chunk in generate_stream():
+                    await queue.put(chunk)
+            except Exception as error:
+                await queue.put(error)
+            finally:
+                retry_status_callback.reset(status_token)
+                retry_deadline.reset(deadline_token)
+                queue.put_nowait(None)
+
+        producer = asyncio.create_task(produce())
+        try:
+            while True:
+                try:
+                    chunk = await asyncio.wait_for(queue.get(), timeout=15)
+                except TimeoutError:
+                    yield ": keep-alive\n\n"
+                    continue
+                if chunk is None:
+                    break
+                if isinstance(chunk, Exception):
+                    raise chunk
+                yield chunk
+        finally:
+            producer.cancel()
+            await asyncio.gather(producer, return_exceptions=True)
 
     return StreamingResponse(
         stream(),

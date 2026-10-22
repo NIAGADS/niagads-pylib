@@ -11,11 +11,11 @@ from pydantic import ConfigDict, Field
 
 
 class AskIssue(CustomBaseModel):
-    """An unavailable capability reported without failing the conversation."""
+    """An unavailable capability or interrupted run with native diagnostics."""
 
     model_config = ConfigDict(extra="forbid")
 
-    code: Literal["unsupported"]
+    code: Literal["unsupported", "usage_limit"]
     operation: str
     message: str
     request_id: str | None = None
@@ -81,6 +81,7 @@ class AskResponse(CustomBaseModel):
         "unsupported",
         "retrieval_error",
         "provider_error",
+        "token_limit",
     ] = "ok"
     results: list[ResultSet] = Field(default_factory=list, max_length=12)
     presentation: list[PresentationIntent] = Field(default_factory=list, max_length=6)
