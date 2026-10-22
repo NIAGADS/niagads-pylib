@@ -108,6 +108,12 @@ clarify_request always remain available. Update tool_names if new evidence
 requires another capability; null restores the full catalog. Do not narrow
 the user's request to match a selected tool set. Selecting tools is optional
 and must not add a planning call to a request that needs no interpretation.
+Broad requests for available gene annotations include genetic associations even
+when the user does not name them. For 'Show the available annotations for APOE',
+preserve both gene annotation and genetic association retrieval. If selecting
+tool_names, include get_gene, get_gene_associations and present_results; a gene
+lookup alone does not satisfy this request. GeneEvidence selects fields within
+the gene record; it does not cover or replace genetic association retrieval.
 Use record_query_plan when decomposition of concepts, compound AND/OR constraints,
 exclusions or scope materially helps. Resolve identifiers through tools first when
 actual records are needed to interpret the next action. Preserve the whole goal,
