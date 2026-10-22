@@ -4,7 +4,6 @@ import asyncio
 import json
 from copy import deepcopy
 from pathlib import Path
-from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -14,7 +13,7 @@ from niagads.open_access_api.ask import tools, transport
 from niagads.open_access_api.ask.agent import build_agent
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.contracts import ResultSet
-from niagads.open_access_api.ask.planning import QueryPlan, build_query_planner
+from niagads.open_access_api.ask.planning import QueryPlan
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic import ValidationError
 from pydantic_ai.exceptions import UsageLimitExceeded
@@ -102,7 +101,6 @@ def test_interpretation_is_flat_and_bounded():
     model = FunctionModel(
         lambda messages, info: ModelResponse(parts=[TextPart("protocol")])
     )
-    assert build_query_planner(model).model_settings["max_tokens"] == 2000
     assert build_agent(AskSettings(), model=model).model_settings["max_tokens"] == 2000
 
 
@@ -292,11 +290,6 @@ def test_active_deadline_preserves_evidence_and_closes_native_stream(
         parameters={"gene": "APOE"},
     )
 
-    async def interpret(*args, **kwargs):
-        return SimpleNamespace(
-            output=QueryPlan(intent="lookup_record", goal="Retrieve requested evidence")
-        )
-
     async def retrieve(*args):
         return retrieved
 
@@ -317,9 +310,6 @@ def test_active_deadline_preserves_evidence_and_closes_native_stream(
     settings = AskSettings(deadline=1, feedback_enable=False)
     agent = build_agent(settings, model=FunctionModel(stream_function=protocol))
     monkeypatch.setattr(tools, "retrieve", retrieve)
-    monkeypatch.setattr(
-        transport, "build_query_planner", lambda model: SimpleNamespace(run=interpret)
-    )
     app = FastAPI()
     app.include_router(transport.router)
     app.dependency_overrides[transport.get_agent] = lambda: agent
@@ -395,3 +385,162 @@ def test_gene_evidence_can_be_selected_after_interpretation(
     asyncio.run(agent.run("Protocol: select annotation evidence", deps=deps))
     assert deps["query_plan"].gene_evidence == []
     assert deps["store"].get(retrieved.id).rows == [recorded_gene]
+
+
+@pytest.mark.parametrize("mode", ["direct", "planned", "invalid_plan"])
+def test_annotation_request_reaches_native_retrieval_without_mandatory_planning(
+    monkeypatch, recorded_gene, mode
+):
+    """Protocol evidence checks the route boundary, not live model interpretation."""
+    gene = ResultSet(
+        entity="gene",
+        annotation="report",
+        rows=[recorded_gene],
+        sources=[recorded_gene["id"]],
+        parameters={"gene": "APOE"},
+    )
+    associations = ResultSet(
+        entity="gene",
+        annotation="associations",
+        rows=[],  # Empty API evidence must not erase the retrieved gene annotations.
+        parameters={"gene": recorded_gene["id"], "page": 1, "flank": 0},
+    )
+    calls, operations = [], []
+    interpretation = {
+        "goal": "Retrieve gene annotations and associated dataset/association evidence",
+        "intent": "retrieve_data",
+        "entity": "gene",
+        "gene_evidence": ["functional_annotation", "memberships"],
+    }
+    # Supplied malformed completion: invalid JSON, not evidence of token truncation.
+    malformed = (
+        '[[{"name": "final_result", "parameters": {"intent": "discover_resources", '
+        '"entity": "track", "selection": {"operator": "and", "operands": '
+        '[{"category": "annotation", "text": "annotation"}]}, "location": '
+        '{"kind": "gene", "loc": "APOE"}, "clarifications": [], '
+        '"exclusions": [], "gene_evidence": []}}]'
+    )
+
+    async def retrieve(client, operation, parameters):
+        operations.append((operation, parameters))
+        if operation == "gene_full":
+            assert parameters == {"gene": "APOE"}
+            return gene
+        assert operation == "gene_associations"
+        assert parameters == associations.parameters
+        return associations
+
+    async def protocol(messages, info):
+        step = len(calls)
+        calls.append(messages)
+        if step == 0:
+            name, arguments = "get_gene", {
+                "gene": "APOE",
+                "content": "full",
+                "evidence_fields": ["functional_annotation", "memberships"],
+            }
+        elif mode == "invalid_plan":
+            yield {
+                0: DeltaToolCall(
+                    name="record_query_plan",
+                    json_args=malformed,
+                    tool_call_id=f"invalid-{step}",
+                )
+            }
+            return
+        elif mode == "planned" and step == 1:
+            evidence = returned(messages)
+            assert evidence["gene_annotations"][0]["id"] == recorded_gene["id"]
+            name, arguments = "record_query_plan", {"interpretation": interpretation}
+        elif step == (2 if mode == "planned" else 1):
+            if mode == "planned":
+                assert returned(messages)["status"] == "recorded"
+            else:
+                evidence = returned(messages)
+                assert (
+                    evidence["gene_annotations"][0]["functional_annotation"]
+                    == recorded_gene["functional_annotation"]
+                )
+            name, arguments = "get_gene_associations", {"gene": recorded_gene["id"]}
+        elif step == (3 if mode == "planned" else 2):
+            evidence = returned(messages)
+            assert evidence["result_id"] == associations.id
+            assert evidence["count"] == 0
+            name, arguments = "present_results", {
+                "presentation": {"result_id": evidence["result_id"], "view": "table"}
+            }
+        else:
+            yield "Gene annotations were retrieved; no association records were returned."
+            return
+        yield {
+            0: DeltaToolCall(
+                name=name, json_args=json.dumps(arguments), tool_call_id=f"call-{step}"
+            )
+        }
+
+    # Streaming-only model: the obsolete mandatory non-streaming planner cannot run.
+    settings = AskSettings(feedback_enable=False)
+    agent = build_agent(settings, model=FunctionModel(stream_function=protocol))
+    app = FastAPI()
+    app.include_router(transport.router)
+    app.dependency_overrides[transport.get_agent] = lambda: agent
+    app.dependency_overrides[transport.get_settings] = lambda: settings
+    monkeypatch.setattr(tools, "retrieve", retrieve)
+
+    async def request():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            return await client.post(
+                "/ask",
+                json={
+                    "messages": [
+                        {
+                            "role": "user",
+                            "parts": [
+                                {
+                                    "type": "text",
+                                    "text": "Show the available annotations for APOE",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            )
+
+    response = asyncio.run(request())
+    events = [
+        json.loads(line[6:])
+        for line in response.text.splitlines()
+        if line.startswith("data: {")
+    ]
+    envelope = next(
+        event["data"] for event in events if event["type"] == "data-niagads-result"
+    )
+    plans = [event for event in events if event["type"] == "data-niagads-plan"]
+    errors = [event for event in events if event["type"] == "error"]
+    assert envelope["results"][0] == gene.model_dump(mode="json")
+    assert response.text.rstrip().endswith("data: [DONE]")
+    if mode == "invalid_plan":
+        assert len(operations) == 1
+        assert len(calls) == 3
+        assert not plans
+        assert errors and "UnexpectedModelBehavior" in errors[0]["errorText"]
+        assert envelope["status"] == "retrieval_error"
+        assert len(envelope["results"]) == 1
+    else:
+        assert [operation for operation, _ in operations] == [
+            "gene_full",
+            "gene_associations",
+        ]
+        assert envelope["results"][1] == associations.model_dump(mode="json")
+        assert envelope["presentation"][0]["result_id"] == associations.id
+        assert not errors
+        assert len(calls) == (5 if mode == "planned" else 4)
+        assert len(plans) == (1 if mode == "planned" else 0)
+        if plans:
+            assert plans[0]["data"] == QueryPlan.model_validate(
+                interpretation
+            ).model_dump(mode="json")
+            assert "id" not in plans[0]
+            assert "transient" not in plans[0]

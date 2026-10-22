@@ -1,5 +1,46 @@
 # ASK working context — implementation ready for local review, 2026-10-21
 
+## Annotation regression: optional interpretation — 2026-10-21
+
+Continue on the existing `codex/ask-stepwise-execution` branch in both repos.
+This follow-up supersedes the mandatory preliminary-call design below. Both
+checkouts were clean at inspection; no user changes were overwritten.
+
+The supplied trace establishes invalid interpretation JSON at the separate
+pre-retrieval call. The preceding bounded-schema change still required that call
+and therefore did not remove the blocking integration. Finish reason/provider
+usage were not supplied; token truncation and provider/model attribution remain
+unverified. No live incident reproduction, model switch or retry increase.
+
+Removed build_query_planner and the mandatory transport call. One retrieval
+agent now acts directly on clear requests, with optional record_query_plan using
+the same fixed, bounded QueryPlan schema as native tool arguments. It can record
+interpretation after identifier resolution. Only validated interpretations emit
+data-niagads-plan through the existing stream; absent plans are valid. Invalid
+optional planning uses native validation/retry exhaustion, explicitly errors and
+preserves any previously retrieved records; no string repair/default/fake plan.
+
+Gene annotation instructions cover BOTH full gene evidence and gene associations,
+using returned track IDs with get_track for associated dataset metadata when
+needed. Verified integrations: ResultStore summaries carry actual track IDs in
+previews/source references/trait evidence; existing frontend adapters handle
+association evidence/counts and track records. No new endpoint, keyword router,
+workflow executor, SQL, ORM, retrieval or frontend component change.
+
+Added route-level protocol regressions for direct gene/association retrieval,
+planning after resolution and supplied malformed JSON preserving earlier gene
+evidence. Existing limit/retry/feedback/deadline tests now target the single
+native loop. Recorded APOE data and empty association responses are protocol
+fixtures, not claims of live biological coverage. Backend tests NOT RUN per
+AGENTS.md. Static Python AST, JSON schema/tool registration, Black/isort and diff
+checks pass. Frontend changes are documentation only; prior client checks were
+not rerun. Existing 2,000-token cap, deadlines, budgets, regional routes/defaults,
+ADSP/table behavior, feedback and SSE optional-null omission remain.
+
+Next: explicitly authorized offline backend regressions, then local live review
+of gene annotations plus associated tracks. Live model selection/formatting and
+retrieval quality remain unverified.
+
 ## Current task: incremental dependent execution — 2026-10-22
 
 Continue on `codex/ask-stepwise-execution`, created from updated `refactor/api`

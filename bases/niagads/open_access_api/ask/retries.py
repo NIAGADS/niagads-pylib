@@ -153,7 +153,7 @@ async def call_with_retry(
 
 
 class RetryingModel(WrapperModel, ComponentBaseMixin):
-    """Share one retry helper across planner requests and evidence streaming."""
+    """Share one retry helper across model requests and evidence streaming."""
 
     def __init__(self, model: Model):
         ComponentBaseMixin.__init__(self)

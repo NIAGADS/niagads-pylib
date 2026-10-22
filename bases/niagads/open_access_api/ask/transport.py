@@ -18,7 +18,7 @@ from niagads.open_access_api.ask.feedback import (
     create_feedback_reference,
     record_feedback,
 )
-from niagads.open_access_api.ask.planning import build_query_planner
+from niagads.open_access_api.ask.planning import QueryPlan
 from niagads.open_access_api.ask.results import ResultStore
 from niagads.open_access_api.ask.retries import (
     RetryStatus,
@@ -290,16 +290,6 @@ async def ask(
                         timeout=settings.api_timeout,
                     ) as client:
                         deps["client"] = client
-                        planned = await build_query_planner(agent.model).run(
-                            json.dumps(clean["messages"]),
-                            usage=usage,
-                            usage_limits=usage_limits,
-                        )
-                        deps["query_plan"] = planned.output
-                        if planned.output.exclusions:
-                            deps["warnings"].append(
-                                "Requested exclusions have not been applied."
-                            )
                         native_events = adapter.run_stream_native(
                             deps=deps,
                             usage=usage,
@@ -328,10 +318,6 @@ async def ask(
 
                         async def stream_events():
                             nonlocal message_started
-                            yield DataChunk(
-                                type="data-niagads-plan",
-                                data=planned.output.model_dump(mode="json"),
-                            )
                             async for event in events:
                                 if isinstance(event, StartChunk):
                                     message_started = True
@@ -392,7 +378,7 @@ async def ask(
                 yield "data: [DONE]\n\n"
 
     async def stream():
-        # Interpretation-call status must reach the browser before execution begins.
+        # Relay tool data and retry status while native execution is in progress.
         queue: asyncio.Queue[str | Exception | None] = asyncio.Queue()
 
         def report_status(status: RetryStatus | None):
@@ -405,6 +391,14 @@ async def ask(
                 "transient": True,
             }
             queue.put_nowait("data: " + json.dumps(event) + "\n\n")
+
+        def report_plan(interpretation: QueryPlan):
+            event = DataChunk(
+                type="data-niagads-plan", data=interpretation.model_dump(mode="json")
+            )
+            queue.put_nowait("data: " + event.encode(sdk_version=7) + "\n\n")
+
+        deps["report_plan"] = report_plan
 
         async def produce():
             status_token = retry_status_callback.set(report_status)

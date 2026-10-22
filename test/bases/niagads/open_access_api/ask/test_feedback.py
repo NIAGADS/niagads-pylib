@@ -2,15 +2,13 @@
 
 import json
 from contextlib import nullcontext
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from niagads.open_access_api.ask.config import AskSettings
 from niagads.open_access_api.ask.feedback import create_feedback_reference
-from niagads.open_access_api.ask.planning import QueryIntent, QueryPlan
 from niagads.open_access_api.ask.transport import get_agent, get_settings, router
 from opentelemetry import trace
 from pydantic import SecretStr
@@ -140,24 +138,12 @@ async def exception_events(*args, **kwargs):
     raise RuntimeError("Retrieval failed")
 
 
-@pytest.mark.parametrize("failure", ["planner", "error_chunk", "exception"])
+@pytest.mark.parametrize("failure", ["error_chunk", "exception"])
 def test_failed_responses_include_feedback_reference(
     feedback_client, monkeypatch, failure
 ):
     agent = Agent(TestModel())
     feedback_client.app.dependency_overrides[get_agent] = lambda: agent
-    planner = MagicMock()
-    planner.run = AsyncMock(
-        return_value=SimpleNamespace(
-            output=QueryPlan(goal="Protocol interpretation", intent=QueryIntent.OTHER)
-        )
-    )
-    if failure == "planner":
-        planner.run.side_effect = RuntimeError("Planning failed")
-    monkeypatch.setattr(
-        "niagads.open_access_api.ask.transport.build_query_planner",
-        lambda model: planner,
-    )
     monkeypatch.setattr(
         "niagads.open_access_api.ask.transport.logfire.span",
         lambda *args, **kwargs: nullcontext(),

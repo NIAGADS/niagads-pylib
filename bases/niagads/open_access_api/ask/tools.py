@@ -213,7 +213,8 @@ async def get_gene_associations(
     """Retrieve gene association evidence, including reported phenotype/trait annotations.
 
     Both full and summary content expose trait terms and source tracks to the agent.
-    Summary content retains the API's association counts per track.
+    Summary content retains the API's association counts per track. Use returned
+    track IDs with get_track for associated dataset metadata.
     """
     operation = (
         "gene_associations_summary"

@@ -16,28 +16,29 @@ added; live model behavior remains unvalidated.
 
 ## Structured query interpretation
 
-ASK first calls the configured `ASK_MODEL` for a compact `QueryPlan`
-interpretation: a short goal, intent, entity, up to six flat positive concepts,
-up to six concise constraints, unresolved gene/span/variant scope, and only
-necessary clarification/evidence hints. Compound AND/OR meaning stays in the
-constraints and original request; there is no recursive tree or upfront tool
-sequence. It does not invent coordinates, identifiers, evidence or capabilities.
+ASK uses one PydanticAI retrieval agent. Clear requests retrieve directly. When
+concept decomposition or scope materially benefits, it can call record_query_plan
+with a fixed, bounded QueryPlan schema, before or after resolving identifiers.
+There is no mandatory interpretation call before retrieval. Optional planning
+records a short goal, intent, flat concepts/constraints and necessary scope or
+evidence hints, not an exhaustive workflow. It is not retrieved evidence.
 
-The existing PydanticAI tool loop selects an actionable tool, examines its return,
-then determines the next action. This applies to any registered tools, rather than
-special-case workflows. Gene/structure tools accept per-call `evidence_fields` so
-new dependencies are not limited by the initial interpretation. Structure calls
-expose transcript IDs and spans by default; exons remain opt-in. Full records stay
-in ResultStore; compact summaries carry actual fields, sources and owned result
-references. Existing history compaction retains these selective projections.
+Each native tool return determines the next action. Gene/structure tools select
+per-call evidence_fields so dependencies discovered during execution are supported.
+Structure summaries expose transcript IDs/spans; exons remain opt-in. Full records
+stay in ResultStore. Available gene-annotation requests cover both full gene
+annotation and gene associations. Returned source track IDs identify associated
+datasets; get_track supplies their metadata when needed. Semantic candidates do
+not establish an association. Empty associations do not erase gene evidence.
 
-Interpretation and execution use the same model, shared request/token/deadline
-budgets and retry handling. Both retain the existing 2,000-token output cap. The
-interpretation costs at least one request; no second executor or new model setting
-is introduced. Invalid interpretation/provider failures retain native diagnostics.
+The native loop retains request/tool/token/deadline budgets, retry handling and
+max_tokens=2000. The optional planning call uses the same tool argument validation
+as retrieval: invalid inputs get the existing bounded native retry, then an honest
+error if exhausted. No fabricated default interpretation, JSON repair or silent
+fallback occurs. Already retrieved results remain available on failure.
 
-`data-niagads-plan` retains its event name for the bounded interpretation, including
-in feedback. The frontend mirrors its strict schema; deploy both repos together.
+`data-niagads-plan` is emitted only for a successfully recorded interpretation,
+including in feedback; clear requests need no plan event. The frontend mirrors its strict schema; deploy both repos together.
 Browser-supplied plan/tool parts are discarded. Each turn interprets sanitized
 text and re-fetches evidence when needed; browser dashboards are not model memory.
 
@@ -59,7 +60,9 @@ regional variants retain table presentation even for one record. Paging remains
 in the ASK TODO; do not fetch extra pages or add paging commentary.
 
 Focused protocol regressions use recorded APOE evidence and simulated SDK exchanges,
-not live LLM reasoning. They cover dependent calls, exact transcript scope,
+not live LLM reasoning. The annotation regression covers the real /ask streaming
+boundary: direct gene/association retrieval without a planner, optional planning
+after resolution, and invalid planning preserving earlier evidence. They cover dependent calls, exact transcript scope,
 clarification, unsupported capabilities, per-call evidence and bounded termination.
 They were added but not executed under AGENTS.md's explicit-request test rule.
 Static checks cannot establish live interpretation quality or grounding.

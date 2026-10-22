@@ -5,8 +5,10 @@ refactor/api and app/oa-api. No subagents or live services.
 
 ## Design
 
-Retain the existing small interpretation call and PydanticAI evidence-agent loop;
-do not introduce an executor. Replace recursive Boolean planning with a bounded
+Use one PydanticAI retrieval agent with optional structured interpretation through
+record_query_plan. The annotation-regression follow-up removed the separate
+mandatory interpretation call; clear lookups retrieve immediately. Do not
+introduce another executor. Replace recursive Boolean planning with a bounded
 QueryPlan: a short goal, flat concepts, concise constraints, unresolved scope,
 necessary clarifications and selective gene evidence. The original request remains
 authoritative; interpretation is not a capability check or execution gate.
@@ -20,8 +22,7 @@ capability tools retain their native outcomes; instructions require reporting th
 limitation and stopping that dependent path while preserving retrieved results.
 
 Keep the data envelope, routes, frontend adapters, filters, deadlines, retry
-handling and usage limits. Keep the existing 2,000-token output limit on both
-calls; bound interpretation through its flat schema and field/count limits,
+handling and usage limits. Keep the existing 2,000-token model output limit; bound interpretation through its flat schema and field/count limits,
 without provider-budget tuning. The existing data-niagads-plan event carries
 interpretation (not a promised workflow), including in feedback.
 
@@ -36,9 +37,14 @@ interpretation (not a promised workflow), including in feedback.
       recorded gene evidence where records are needed, not invented biology.
 - [x] Static validation and handoff. AGENTS.md permits tests only on explicit request;
       backend tests are added but not executed. Frontend rules permit running its
-      three new contract regressions; all pass. No live provider/database calls.
+      three new contract regressions passed in the preceding revision. No live
+      provider/database calls. Annotation follow-up adds route regressions for
+      direct retrieval, optional planning after resolution, and malformed planning
+      with preserved evidence; backend execution remains unauthorized.
 
 ## Deferred
 
 Pagination remains in developer-notes/TODO.md; no additional-page execution or
-paging commentary. OpenRouter/Logfire incident diagnosis remains deferred.
+paging commentary. The supplied annotation trace establishes malformed interpretation JSON blocking
+retrieval. Provider/model attribution, finish reason and usage remain unverified;
+no token-truncation claim or model-selection change is made.
