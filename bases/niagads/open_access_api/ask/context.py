@@ -167,7 +167,7 @@ def compact_history(
         ),
     )
     compacted = []
-    inserted = False
+    snapshot_index = max(returns[key][0][0] for key in folded)
     for index, message in enumerate(messages):
         if state.owns(message):
             continue
@@ -175,9 +175,6 @@ def compact_history(
             text = [part for part in message.parts if isinstance(part, TextPart)]
             if text:
                 compacted.append(replace(message, parts=text))
-            if not inserted:
-                compacted.append(snapshot)
-                inserted = True
         elif isinstance(message, ModelRequest):
             parts = [
                 part
@@ -194,6 +191,8 @@ def compact_history(
                 )
         else:
             compacted.append(message)
+        if index == snapshot_index:
+            compacted.append(snapshot)
     if len(ModelMessagesTypeAdapter.dump_json(compacted)) >= len(
         ModelMessagesTypeAdapter.dump_json(messages)
     ):

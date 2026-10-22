@@ -232,6 +232,28 @@ def test_completed_exchanges_compact_with_real_evidence_and_idempotence(
     assert messages == original
 
 
+def test_compacted_history_ends_with_request_after_mixed_tool_response(
+    working_context, gene_result
+):
+    messages = exchanges(working_context, gene_result)
+    explanation = TextPart("The retrieved evidence is ready for presentation.")
+    messages[-2].parts.insert(0, explanation)
+    original = deepcopy(messages)
+
+    compacted = compact_history(working_context, messages)
+
+    assert isinstance(compacted[-1], ModelRequest)
+    assert compacted[-1] is snapshot(compacted)
+    assert any(
+        explanation in message.parts
+        for message in compacted
+        if isinstance(message, ModelResponse)
+    )
+    assert len(json.loads(snapshot(compacted).parts[0].content)["exchanges"]) == 4
+    assert compact_history(working_context, compacted) == compacted
+    assert messages == original
+
+
 def test_pending_retry_and_original_conversation_survive(working_context, gene_result):
     messages = exchanges(working_context, gene_result)
     narrative = ModelResponse(parts=[TextPart("Earlier explanation")])
