@@ -1,29 +1,100 @@
-# Example usage
+# Open Access API
 
-## Clone the repository
+## Configure Docker and the API
 
-```bash
-git clone https://github.com/NIAGADS/niagads-pylib.git
-```
-
-Navigate to this project folder (where the `pyproject.toml` file is)
-
-Run:
-
-``` shell
-poetry build-project
-```
-
-## Set up the environmental variables
+Run these commands from `projects/open-access-api` in the monorepo checkout.
+Poetry and Docker Compose are required.
 
 ```bash
-cp sample.env .env
+cp docker.env.sample .env
+cp dev.runtime.env.sample dev.runtime.env
 ```
 
-Edit the `.env` file
+Edit `.env` to set `KEYDB_DATA_DIR` to an existing host directory for
+cache persistence, and configure the exposed ports. Set `API_VERSION` to
+the version in this project's `pyproject.toml` so Docker selects the correct
+wheel from `dist/`.
 
-## Build the docker image using the docker compose file:
+> Current **API_VERSION** = 2.0.0
+
+Edit `{service_env}.runtime.env` (`service_env` = `dev` or `prod`) to configure the API's database connection and URLs.
+Use the Compose service name `oaa-cachedb` for the cache hostname:
+
+In development, make sure to update the `DATABASE_URI` to use the port of your database or database tunnel if you are not following project recommendations. In development, the database listener must be reachable from the container through `host.docker.internal`.
+
+## Build the wheel and Docker image
 
 ```bash
-docker compose up -d 
+poetry build
+docker compose build oaa-service
+```
+
+Rebuild both after changing application code or project dependencies.
+
+The Docker build copies `ask.build.env` to `/code/.env` in the application's
+working directory, so Pydantic settings can load the ASK defaults.
+Rebuild the image after changing `ask.build.env`. Runtime environment variables
+take precedence over values loaded from `.env`; supply credentials through the
+runtime environment file.
+
+For direct API telemetry and answer feedback, fill in `LOGFIRE_TOKEN` with a
+write token from your Logfire project in `dev.runtime.env` or `prod.runtime.env`.
+The runtime samples enable `ASK_TELEMETRY`, `ASK_CAPTURE_CONTENT`, and
+`ASK_FEEDBACK_ENABLE`. OpenRouter's Logfire integration does not supply this
+credential to the API. Keep the token out of `ask.build.env` and frontend ENV
+files. Recreate the API container after adding or changing the runtime token.
+
+## Start the cache
+
+```bash
+docker compose up -d oaa-cachedb
+```
+
+## Start the API with its runtime environment
+
+```bash
+docker run -d \
+  --name oaa-service \
+  --restart always \
+  --network oa-network \
+  --add-host host.docker.internal:host-gateway \
+  --env-file dev.runtime.env \
+  -p 8000:8000 \
+  oaa-service:2.0.0
+```
+
+prod
+
+```bash
+docker run -d \
+  --name oaa-service \
+  --restart always \
+  --network oa-network \
+  --add-host host.docker.internal:host-gateway \
+  --env-file prod.runtime.env \
+  -p 8000:8000 \
+  oaa-service:2.0.0
+```
+
+> LEGACY NOTE for the cache: need to set user in compose b/c of permissions issue; may not be an issue on new servers
+
+Run this after starting the cache, which creates `oa-network`. Use the image
+version matching `API_VERSION` in `.env`, and change the left side of
+`-p 8000:8000` to your desired host port. For production, pass
+`--env-file prod.runtime.env` instead.
+
+After changing the runtime environment or rebuilding the image, remove the
+existing API container before repeating the `docker run` command:
+
+```bash
+docker stop oaa-service
+docker rm oaa-service
+```
+
+With the example port mapping, the API is available at `http://localhost:8000`.
+
+View the API logs:
+
+```bash
+docker logs --tail 100 -f oaa-service
 ```

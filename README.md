@@ -1,5 +1,7 @@
 # niagads-pylib
 
+> DEVELOPERS: **This README is out of date**.  
+
 a collection of python packages, classes, and utility functions in support of NIAGADS projects
 
 > This project is under-development and not recommended for third-party users

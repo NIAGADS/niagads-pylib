@@ -1,0 +1,84 @@
+"""Common API type definitions.
+
+This module defines small shared types used across the NIAGADS API,
+"""
+
+from enum import auto
+
+from niagads.enums.core import CaseInsensitiveEnum
+
+
+class VariantClassFilter(CaseInsensitiveEnum):
+    """Top-level filter against variant class: structural variants (SNV)
+    vs short variants (SHORT) such as SNVs and short INDELs or all matches (ALL)"""
+
+    SHORT = auto()
+    SV = auto()
+    ALL = auto()
+
+
+class ResponseContent(CaseInsensitiveEnum):
+    """enum for allowable response views"""
+
+    FULL = auto()
+    SUMMARY = auto()
+    URLS = auto()
+    # COUNTS = auto()
+    IDS = auto()
+
+
+# FIXME: test and re-enable these serializers
+class ResponseFormat(CaseInsensitiveEnum):
+    """enum for allowable response / output formats"""
+
+    JSON = auto()
+    # TEXT = auto()
+    # XML = auto()
+
+
+class ResponseUI(CaseInsensitiveEnum):
+    TABLE = auto()
+    IGV_CONFIG = auto()
+    IGV_TRACK_SELECTOR = auto()
+    CHART = auto()
+    DEFAULT = auto()
+
+
+class AnnotationKind(CaseInsensitiveEnum):
+    """Kinds of annotation represented by an entity's API records.
+
+    Attributes:
+        REPORT: The entity's canonical report.
+        ASSOCIATIONS: Association annotations for the entity.
+        STRUCTURE: Structural annotations for the entity.
+    """
+
+    REPORT = "report"
+    ASSOCIATIONS = "associations"
+    STRUCTURE = "structure"
+
+
+class Entity(CaseInsensitiveEnum):
+    """Enumeration of entity types used in the API.
+    Members:
+        GENE: Represents a gene entity.
+        VARIANT: Represents a variant entity.
+        REGION: Represents a span entity.
+        TRACK: Represents a track entity.
+        COLLECTION: Represents a collection entity.
+    """
+
+    GENE = "gene"
+    VARIANT = "variant"
+    REGION = "region"
+    TRACK = "track"
+    COLLECTION = "collection"
+
+    def __str__(self):
+        """Return a human-friendly title-cased name for the entity.
+
+        Returns:
+            str: Title-cased string of the enum value (e.g., "Gene", "Variant").
+        """
+
+        return self.value.title()

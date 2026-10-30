@@ -1,5 +1,5 @@
 from enum import auto
-from typing import Annotated, Union
+from typing import Annotated, Any, TypeAlias, Union
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
@@ -12,6 +12,7 @@ T_VariantID = Annotated[str, Field(pattern=RegularExpressions.POSITIONAL_VARIANT
 T_RefSNP = Annotated[str, Field(pattern=RegularExpressions.REF_SNP_ID)]
 
 PrimitiveType = Union[str, int, float, bool, None]
+RecordRetrievalResult: TypeAlias = dict[str, list[dict[str, Any]]]
 
 
 class Entity(CaseInsensitiveEnum):

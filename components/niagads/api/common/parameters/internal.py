@@ -1,0 +1,59 @@
+from typing import Annotated, Optional
+
+from aiohttp import ClientSession
+from fastapi import Depends, Request
+from niagads.api.common.config import Settings
+from niagads.api.common.models.context.cache import CacheKey
+from niagads.api.common.models.context.request import RequestDetails
+from niagads.api.common.models.context.response import ResponseConfiguration
+from niagads.api.common.services.pagination import PaginationService
+from niagads.api.common.utils import get_empty_dict
+from niagads.cache.core import CacheManager, CacheSerializer
+from niagads.database.session import DatabaseSessionManager
+from niagads.settings.core import ServiceEnvironment, get_service_environment
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# internal cache; stores responses as is
+_CACHE_MANAGER = CacheManager(
+    connection_string=Settings.from_env().CACHE_DB_URI,
+    serializer=CacheSerializer.PICKLE,
+    ttl=Settings.from_env().CACHE_TTL,
+)
+
+_DATABASE_SESSION_MANAGER: DatabaseSessionManager = DatabaseSessionManager(
+    connection_string=Settings.from_env().DATABASE_URI,
+    echo=get_service_environment() == ServiceEnvironment.DEV,
+)
+
+
+class EndpointContext(BaseModel, arbitrary_types_allowed=True):
+    """Provide request-scoped context and service dependencies to endpoints.
+
+    This model is injected into endpoint handlers and supplies request metadata,
+    cache access, and optional HTTP and database sessions.
+    """
+
+    request: Request
+    request_data: RequestDetails = Depends(RequestDetails.from_request)
+
+    cache_key: CacheKey = Depends(CacheKey.from_request)
+    cache_manager: Annotated[CacheManager, Depends(_CACHE_MANAGER)]
+
+    # session managers; can be override as needed for applications
+    # http_client_session is a dict to enable connection to multiple services
+    # e.g. 'filer': FILER client, 'xqtl': xQTL client
+    http_client_session: Annotated[
+        dict[str, ClientSession],
+        Depends(get_empty_dict),
+    ]
+    database_session: Annotated[AsyncSession, Depends(_DATABASE_SESSION_MANAGER)]
+
+    @classmethod
+    async def verify_database_connection(cls) -> None:
+        """Verify the database dependency is available."""
+        database_dependency = (
+            cls.model_fields["database_session"].metadata[0].dependency
+        )
+
+        await database_dependency.test_connection()

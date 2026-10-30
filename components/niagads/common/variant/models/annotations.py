@@ -17,15 +17,17 @@ class FrequencyPopulation(CustomBaseModel):
 
 
 class AlleleFrequencies(CustomBaseModel):
-    population: FrequencyPopulation = Field(title="Population", order=1)
-    allele: str = Field(title="Allele", order=3)
+    population: FrequencyPopulation = Field(
+        title="Population", json_schema_extra={"order": 1}
+    )
+    allele: str = Field(title="Allele", json_schema_extra={"order": 3})
 
     data_source: str = Field(
         title="Resource",
         description="original data source for the frequency information",
-        order=2,
+        json_schema_extra={"order": 2},
     )
-    frequency: str = Field(title="Frequency", order=4)
+    frequency: str = Field(title="Frequency", json_schema_extra={"order": 4})
 
 
 class LDPartner(VariantIdentifier):

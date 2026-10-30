@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Any, Dict, Optional
 
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
@@ -38,10 +37,6 @@ class BaseFeatureLoaderPlugin(AbstractBasePlugin, BinIndexReferenceMixin):
         super().__init__(params, name, log_path, debug, verbose)
 
         self.__external_database: ExternalDatabase = None
-        # bin index reference; fetched into memory
-        self._bin_index_reference: dict = defaultdict(
-            lambda: defaultdict(lambda: {"starts": [], "bins": []})
-        )
 
     @property
     def external_database_id(self):
@@ -53,4 +48,4 @@ class BaseFeatureLoaderPlugin(AbstractBasePlugin, BinIndexReferenceMixin):
             self.__external_database = await self._params.fetch_xdbref(session)
 
             # fetch bin index reference
-            self._bin_index_reference = await self._fetch_bin_index_mapping(session)
+            await self._fetch_bin_index_mapping(session)

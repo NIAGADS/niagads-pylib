@@ -4,6 +4,7 @@ from enum import Enum
 
 from aiocache import RedisCache
 from aiocache.serializers import JsonSerializer, PickleSerializer, StringSerializer
+from niagads.common.core import ComponentBaseMixin
 from typing_extensions import Self
 
 # int or float in seconds specifying maximum timeout for the operations to last.
@@ -27,8 +28,8 @@ class CacheTTL(Enum):
     DAY = 86400
 
 
-class KeyDBCacheManager:
-    """KeyDB (Redis) cache for responses
+class CacheManager(ComponentBaseMixin):
+    """in memory (keydb) cache for responses
     application will instantiate two CacheManagers
         1.  internal cache - for internal use in the FAST-API application
             * pickled responses
@@ -49,7 +50,7 @@ class KeyDBCacheManager:
         namespace: str = None,
         ttl=CacheTTL.DEFAULT,
     ):
-
+        super().__init__()
         # instantiate the serializer
         config = self.__parse_uri_path(connection_string)
         self.__cache = RedisCache(serializer=serializer.value(), **config)
@@ -62,6 +63,10 @@ class KeyDBCacheManager:
     async def test_connection(self):
         # will throw redis.exceptions.ConnectionError if can't execute
         await self.exists("connected", "SUCCESS")
+
+    async def close(self) -> None:
+        """Close cache client connections without removing cached data."""
+        await self.__cache.close()
 
     def set_TTL(self, ttl: CacheTTL):
         """Set time to life.

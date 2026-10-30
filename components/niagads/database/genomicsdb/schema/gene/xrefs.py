@@ -11,11 +11,13 @@ from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_f
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.enums.core import CaseInsensitiveEnum
-from sqlalchemy import String, and_, func, select
+from sqlalchemy import Index, String, and_, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
+
+SYNONYM_FIELDS = ["alias_symbol", "prev_symbol"]
 
 
 class GeneIdentifierType(CaseInsensitiveEnum):
@@ -137,7 +139,6 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
             MultipleResultsFound: If multiple records are found for the given
                 symbol or synonym.
         """
-        SYNONYM_FIELDS = ["alias_symbol", "prev_symbol"]
 
         stmt = select(GeneModel.gene_id).where(
             func.lower(symbol) == GeneModel.gene_symbol

@@ -1,16 +1,29 @@
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 from niagads.common.nlp.embedding.types import (
     Embedding,
     EmbeddingFunction,
 )
-from niagads.common.search.models.record import SearchResultRecord
+from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
+from niagads.common.types import RecordRetrievalResult
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
-from sqlalchemy import ClauseElement, exists, inspect, literal, select
+from sqlalchemy import (
+    ClauseElement,
+    MappingResult,
+    String,
+    column,
+    exists,
+    func,
+    inspect,
+    literal,
+    select,
+    values,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
@@ -363,12 +376,59 @@ class SearchMixin:
     # defined, which is less than satisfactory, but the only viable solution at this time.
 
     @classmethod
+    def _build_windowing_functions(cls, matches_cte, record_id):
+        """Build window functions for the top match for each record.
+
+        Args:
+            matches_cte: CTE containing standardized search-match columns.
+            record_id: SQLAlchemy column expression used to partition matches.
+
+        Returns:
+            Tuple containing labeled SQLAlchemy expressions for rank, score,
+            matched text, and match type.
+        """
+        match_sort_order = (
+            matches_cte.c.rank.asc(),
+            matches_cte.c.score.desc(),
+        )
+
+        return (
+            (
+                func.first_value(matches_cte.c.rank).over(
+                    partition_by=record_id,
+                    order_by=match_sort_order,
+                )
+                - 1
+            ).label("rank"),
+            func.first_value(matches_cte.c.score)
+            .over(
+                partition_by=record_id,
+                order_by=match_sort_order,
+            )
+            .label("score"),
+            func.first_value(matches_cte.c.matched_text.cast(String))
+            .over(
+                partition_by=record_id,
+                order_by=match_sort_order,
+            )
+            .cast(String)
+            .label("matched_text"),
+            func.first_value(matches_cte.c.match_type)
+            .over(
+                partition_by=record_id,
+                order_by=match_sort_order,
+            )
+            .label("match_type"),
+        )
+
+    @classmethod
     def _build_match_cte(
         cls,
         name: str,
         match_type: MatchType,
         matched_text_expr,
         where_condition,
+        *,
         score: float = 1.0,
         join_clause=None,
         post_action: Optional[callable] = None,
@@ -423,9 +483,54 @@ class SearchMixin:
         return stmt.cte(name)
 
     @classmethod
+    async def _execute_search(
+        cls,
+        session: AsyncSession,
+        matches_cte,
+        record_id,
+        record_details,
+        record_type,
+    ) -> list[SearchMatch]:
+        """Execute a search using standardized match results.
+
+        Args:
+            session: Active asynchronous database session.
+            matches_cte: CTE containing standardized search-match columns.
+            record_id: SQLAlchemy column expression identifying each record.
+            record_details: SQLAlchemy expression containing record details.
+            record_type: Entity value identifying the type of each record.
+
+        Returns:
+            Matching search results ordered by rank and score.
+        """
+        rank, score, matched_text, match_type = cls._build_windowing_functions(
+            matches_cte,
+            record_id=record_id,
+        )
+
+        stmt = (
+            select(
+                record_id.label("record_id"),
+                record_details.label("record_details"),
+                literal(str(record_type)).label("record_type"),
+                rank,
+                score,
+                matched_text,
+                match_type,
+            )
+            .distinct()
+            .order_by(rank.asc(), score.desc())
+        )
+
+        result = await session.execute(stmt)
+        rows = result.mappings().all()
+
+        return [SearchMatch(**row) for row in rows if row["record_id"] is not None]
+
+    @classmethod
     async def search(
         cls, session: AsyncSession, search_text: str, *, allow_fuzzy: bool = False
-    ) -> list[SearchResultRecord]:
+    ) -> list[SearchMatch]:
         """Search for records using deterministic text matching.
         No parent fallback provided, must be implemented in child class.
 
@@ -448,7 +553,7 @@ class SearchMixin:
         embed: EmbeddingFunction,
         *,
         limit=10,
-    ) -> list[SearchResultRecord]:
+    ) -> list[SearchMatch]:
         """Search for semantically similar records using embedded query text.
         No parent fallback provided, must be implemented in child class.
 
@@ -474,7 +579,7 @@ class SearchMixin:
         embedding: Embedding,
         *,
         limit=10,
-    ) -> list[SearchResultRecord]:
+    ) -> list[SearchMatch]:
         """Search for semantically similar records using precomputed embeddings.
 
         Args:
@@ -489,4 +594,121 @@ class SearchMixin:
         raise NotImplementedError(
             "Database models using SearchMixin must implement "
             "`semantic_search`_by_embedding for semantic text search (NL querying support)."
+        )
+
+
+class BulkRecordRetrievalMixin:
+    # DEVELOPER'S NOTE: Ideally, this should have been implemented as an Abstract Base Class
+    # but it causes conflicts with SQLAlchemy DeclarativeMeta class.  To avoid having
+    # define a custom abstract declarative metadata class and set it as metaclass for
+    # the SchemaBase, mixin functions will raise NotImplementedErrors, as no fallback can be
+    # defined, which is less than satisfactory, but the only viable solution at this time.
+
+    @classmethod
+    def _build_sql_value_field(cls, lookup_values: Sequence[Any], value_type=String):
+        """Build a SQL values table from lookup values.
+
+        Args:
+            lookup_values (Sequence[Any]): Lookup values to expose as a SQL table.
+            value_type (Any): SQLAlchemy type for the lookup-value column.
+
+        Returns:
+            SQLAlchemy values construct with a ``lookup_value`` column.
+        """
+        return values(
+            column("lookup_value", value_type),
+            name="lookup_values",
+        ).data([(v,) for v in lookup_values])
+
+    @classmethod
+    def _build_lookup_select(
+        cls,
+        sql_value_array,
+        lookup_field,
+        where_clause=None,
+        *,
+        join_clause=None,
+    ):
+        """Build a lookup SELECT for use in a union query.
+
+        Args:
+            sql_value_array (Any): SQL values table containing ``lookup_value``.
+            lookup_field (Any): SQLAlchemy field compared to ``lookup_value``.
+            where_clause (ClauseElement | None): Optional custom condition used
+                to match records.
+            join_clause (Sequence[tuple[Any, ClauseElement]] | None): Optional
+                sequence of ``(table, condition)`` joins.
+
+        Returns:
+            SELECT containing ``lookup_value`` and the full record as JSON.
+
+        Note:
+            ``where_clause`` replaces the default equality match. The match
+            condition is applied to the default join or as a filter after
+            explicit joins.
+        """
+        stmt = select(
+            sql_value_array.c.lookup_value,
+            func.row_to_json(cls.__table__.table_valued()).cast(JSONB).label("record"),
+        ).select_from(sql_value_array)
+
+        match_condition = (
+            where_clause
+            if where_clause is not None
+            else lookup_field == sql_value_array.c.lookup_value
+        )
+
+        if join_clause:
+            for table, condition in join_clause:
+                stmt = stmt.join(table, condition)
+            stmt = stmt.where(match_condition)
+        else:
+            stmt = stmt.join(cls, match_condition)
+
+        return stmt
+
+    @classmethod
+    async def _execute_lookup(
+        cls,
+        session: AsyncSession,
+        lookup_values,
+        matches,
+    ) -> MappingResult:
+        """Execute lookup matches and group records by lookup value.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            lookup_values (Any): SQL values table containing requested identifiers.
+            matches (Any): Subquery containing lookup values and matching records.
+
+        Returns:
+            Mapping result rows containing each lookup value and matching record.
+        """
+        stmt = select(
+            lookup_values.c.lookup_value,
+            matches.c.record,
+        ).select_from(
+            lookup_values.outerjoin(
+                matches,
+                matches.c.lookup_value == lookup_values.c.lookup_value,
+            )
+        )
+
+        return (await session.execute(stmt)).mappings()
+
+    @classmethod
+    async def retrieve_records(
+        cls, session: AsyncSession, identifiers: list[str]
+    ) -> RecordRetrievalResult:
+        """Find records that match a list of identifiers
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            identifiers (list[str]): Identifiers to match.
+        Returns:
+            RecordRetrievalResult: Matching search result records grouped by
+                identifier.
+        """
+        raise NotImplementedError(
+            "Database models using RecordRetrievalMixin must implement "
+            "`fetch_records_by_identifier`."
         )

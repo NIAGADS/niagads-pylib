@@ -68,7 +68,7 @@ class GenomicFeature(BaseModel):
         # split on :
         [chrm, coords] = span.split(":")
         try:
-            validChrm = HumanGenome.validate(chrm, inclPrefix=False)
+            valid_chrm = HumanGenome(chrm).value
         except KeyError:
             raise ValueError(
                 f"Invalid genomic span: `{span}`; invalid chromosome `{chrm}`"
@@ -81,7 +81,7 @@ class GenomicFeature(BaseModel):
                 f"Invalid genomic span: `{span}`; start coordinate must be <= end"
             )
 
-        return f"{validChrm}:{coords}"
+        return f"{valid_chrm}:{coords}"
 
     @staticmethod
     def validate_variant_id(id: str):
@@ -103,7 +103,7 @@ class GenomicFeature(BaseModel):
         # validate chrm
         [chrm, pos, ref, alt] = id.split(":")
         try:
-            HumanGenome.validate(chrm)
+            HumanGenome(chrm)
         except KeyError:
             raise ValueError(
                 f"Invalid genomic location: `{id}`; invalid chromosome `{chrm}`"

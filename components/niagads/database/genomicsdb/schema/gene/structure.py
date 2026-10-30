@@ -12,7 +12,7 @@ from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.utils.regular_expressions import RegularExpressions
-from sqlalchemy import ForeignKey, Integer, String, select
+from sqlalchemy import ForeignKey, Index, Integer, String, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CheckConstraint
@@ -25,6 +25,12 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
         *GenomicRegionMixin.__table_args__,
         *GenomicRegionMixin.get_indexes(GeneTableBase._schema, __tablename__),
         *GenomicRegionMixin.set_bin_index_fk(GeneTableBase._schema, __tablename__),
+        Index(
+            "ix_gene_name_trgm",
+            "gene_name",
+            postgresql_using="gin",
+            postgresql_ops={"gene_name": "gin_trgm_ops"},
+        ),
         CheckConstraint(
             f"source_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
             name="gene_source_id_format_check",

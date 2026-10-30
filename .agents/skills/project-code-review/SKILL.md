@@ -5,6 +5,23 @@ description: Implement or revise code in this repository using its established s
 
 # Project Code Review
 
+## Root-cause gate
+
+Before proposing a design or changing code:
+
+1. Trace the failing symbol through its definition, callers, defaults, overrides,
+   and lifecycle.
+2. Search for all existing implementations and usages of the same pattern.
+3. Identify which object or function is authoritative at runtime.
+4. State the evidence-backed root cause in one sentence.
+5. Implement the smallest fix using that existing path.
+
+Do not introduce a new manager, accessor, abstraction, fallback, or test fixture
+until the existing dependency path has been ruled out.
+
+If multiple approaches remain, ask one targeted question. Do not speculate by
+implementing and reverting alternatives.
+
 ## Before coding
 
 1. Read the applicable `AGENTS.md` files and task-specific instructions.
@@ -16,7 +33,9 @@ If project instructions, configuration, and code patterns conflict, follow the a
 
 ## Implementation
 
-- ask before changing code in existing components or outside specific scope the explicit request.  justify all proposed changes.
+- When the user explicitly requests a fix, implement it after the root-cause
+  gate. Ask only when the existing code permits materially different behaviors
+  that cannot be resolved from repository evidence.
 - Make the smallest complete change that satisfies the explicit request.
 - Follow the project’s configured Python version, formatting, linting, typing, and line-length rules. Use PEP 8 where project configuration does not specify otherwise.
 - Use Pydantic 2 or later when required by the request or the project’s existing design. Do not replace established Pydantic models with dictionaries or duplicate their validation.
@@ -27,14 +46,16 @@ If project instructions, configuration, and code patterns conflict, follow the a
 - Preserve unrelated user changes. Keep edits to comments limited to cases where they are requested or needed to explain a code change.
 - Do not use inline imports unless needed to avoid a circular import.
 - Keep docstrings and comments concise and relevant. Do not add AI attribution or source URLs unless the project requires them.
+- add full googlestyle docstrings to most enums and member or helper/utility functions. type args in the docstrings. do not annotate NotImplemented exceptions in the docstrings. Thing like API routes don't need docstrings. one line wrappers may just need a short descriptive text. don't change existing docstrings unless function was updated/modified.
 
 ## Classes and mixins
 
-- All classes must inherit from `ComponentBaseMixin`, except enums and Pydantic models.
+- Ordinary component and service classes must inherit from `ComponentBaseMixin`. Enums, Pydantic models, SQLAlchemy declarative bases, mapped ORM models (including materialized views), and ORM mixins are exempt.
+- Preserve SQLAlchemy model inheritance. Do not add `ComponentBaseMixin` when modifying ORM models or ORM mixins; use their existing database bases and applicable ORM mixins.
 - Before creating a class or adding class behavior, inspect nearby code and search the project for relevant base classes and mixins.
 - Reuse applicable project mixins and avoid duplicating behavior they provide.
 - Create a new mixin only when the behavior is reusable across multiple classes and no existing mixin provides it. Otherwise, keep the behavior in the class.
-- When modifying a legacy class, add `ComponentBaseMixin` if compatible with its existing design. Do not modify unrelated classes solely to add the mixin.
+- When modifying a legacy component or service class, add `ComponentBaseMixin` if compatible with its existing design. The exemptions above still apply. Do not modify unrelated classes solely to add the mixin.
 - Add `__repr__`, `__str__`, or a class logger when useful and consistent with project patterns; do not add them as boilerplate.
 
 ## Project context

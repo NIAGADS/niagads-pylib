@@ -1,0 +1,14 @@
+from niagads.api.common.models.records.types import ORMCompatibleRecord
+from pydantic import Field
+
+
+class CollectionMetadata(ORMCompatibleRecord):
+    id: str = Field(
+        title="Collection ID",
+        description="Unique collection identifier; may be a NIAGADS Dataset Accession",
+    )
+    name: str = Field(title="Name")
+    description: str = Field(title="Description")
+    num_tracks: int = Field(
+        title="Number of Tracks", description="number of data tracks in the collection"
+    )
