@@ -4,7 +4,10 @@ import json
 import pytest
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
-from niagads.api.common.exception_handlers import runtime_exception_handler
+from niagads.api.common.exception_handlers import (
+    _service_error_response,
+    runtime_exception_handler,
+)
 
 
 @pytest.mark.parametrize("explicit_cause", [False, True])
@@ -56,4 +59,17 @@ def test_runtime_handler_retains_internal_error_response():
     )
 
     assert response.status_code == 500
-    assert json.loads(response.body)["detail"] == "Unexpected failure"
+    payload = json.loads(response.body)
+    assert payload["detail"] == "Unexpected failure"
+    assert payload["report"] == "as-issue"
+
+
+def test_service_error_response_requests_contact_with_niagads():
+    request = Request({"type": "http", "path": "/", "headers": []})
+    error = OSError("Service unavailable")
+
+    response = _service_error_response(request, error, "Contact NIAGADS")
+
+    payload = json.loads(response.body)
+    assert response.status_code == 503
+    assert payload["report"] == "contact-niagads"

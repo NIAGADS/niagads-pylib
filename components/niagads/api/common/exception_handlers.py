@@ -52,6 +52,7 @@ def _service_error_response(
         content={
             "detail": str(exc),
             "message": message,
+            "report": "contact-niagads",
             "stack_trace": [
                 trace.replace("\n", "").replace('"', "'")
                 for trace in traceback.format_tb(exc.__traceback__)
@@ -91,6 +92,7 @@ async def runtime_exception_handler(
                 "containing this full error response to: "
                 "https://github.com/NIAGADS/open-access-service/issues"
             ),
+            "report": "as-issue",
             "stack_trace": [
                 trace.replace("\n", "").replace('"', "'")
                 for trace in traceback.format_tb(exc.__traceback__)
