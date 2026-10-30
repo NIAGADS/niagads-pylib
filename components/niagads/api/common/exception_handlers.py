@@ -87,9 +87,9 @@ async def runtime_exception_handler(
         content={
             "detail": str(exc),
             "message": (
-                "An unexpected error occurred. Please submit a `bug` GitHub issue "
+                "An unexpected error occurred. Please submit a GitHub issue "
                 "containing this full error response and request ID at: "
-                "https://github.com/NIAGADS/niagads-api/issues"
+                "https://github.com/NIAGADS/niagads-open-access-service/issues"
             ),
             "stack_trace": [
                 trace.replace("\n", "").replace('"', "'")
