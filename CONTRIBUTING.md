@@ -27,6 +27,16 @@ cd open-access-service
 poetry install
 ```
 
+### Open Access API / ASK Development
+
+The Open Access API's ASK functionality uses the optional `ask` dependency group. Contributors working on that API must install it explicitly:
+
+```bash
+poetry install --with ask
+```
+
+This installs ASK dependencies including Pydantic AI, Logfire, and Open  Telemetry
+
 If working on a specific branch, check it out before running `poetry install`.
 
 ## Polylith Architecture
