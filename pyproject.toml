@@ -1,9 +1,9 @@
 [project]
-name = "niagads-pylib"
+name = "open-access-service"
 authors = [
     { name = "fossilfriend", email = "egreenfest@gmail.com" },
 ]
-description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
+description = "Python services and shared libraries supporting the NIAGADS Open Access platform, including genomic data retrieval, annotation, API infrastructure, and data processing."
 license = { text = "GNU GPLv3" }
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
