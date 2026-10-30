@@ -1,5 +1,5 @@
 ---
-name: User - Feature request
+name: NIAGADS Open Access - Feature Request
 about: Request a capability or improvement as an application user.
 ---
 
